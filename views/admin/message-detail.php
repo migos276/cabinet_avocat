@@ -522,28 +522,28 @@
                         <div class="files-grid">
                             <?php foreach ($files as $file): ?>
                                 <div class="file-item">
-                                    <div class="file-icon <?php echo $this->getFileIconClass($file['file_type']); ?>">
-                                        <i class="<?php echo $this->getFileIcon($file['file_type']); ?>"></i>
+                                    <div class="file-icon <?php echo getFileIconClass($file['file_type']); ?>">
+                                        <i class="<?php echo getFileIcon($file['file_type']); ?>"></i>
                                     </div>
                                     <div class="file-info">
                                         <div class="file-name"><?php echo htmlspecialchars($file['original_name']); ?></div>
                                         <div class="file-details">
-                                            <?php echo $this->formatFileSize($file['file_size']); ?> • 
+                                            <?php echo formatFileSize($file['file_size']); ?> • 
                                             <?php echo strtoupper($file['file_type']); ?> • 
                                             <?php echo date('d/m/Y H:i', strtotime($file['uploaded_at'])); ?>
                                         </div>
                                     </div>
                                     <div class="file-actions">
                                         <?php if ($file['file_type'] === 'pdf'): ?>
-                                            <button class="file-btn btn-view" onclick="viewPDF('<?php echo htmlspecialchars($file['file_path']); ?>', '<?php echo htmlspecialchars($file['original_name']); ?>')" title="Aperçu">
+                                            <button class="file-btn btn-view" onclick="viewPDF(<?php echo $file['id']; ?>, '<?php echo htmlspecialchars($file['original_name']); ?>')" title="Aperçu">
                                                 <i class="fas fa-eye"></i>
                                             </button>
                                         <?php elseif (in_array($file['file_type'], ['jpg', 'jpeg', 'png'])): ?>
-                                            <button class="file-btn btn-view" onclick="viewImage('<?php echo htmlspecialchars($file['file_path']); ?>', '<?php echo htmlspecialchars($file['original_name']); ?>')" title="Aperçu">
+                                            <button class="file-btn btn-view" onclick="viewImage(<?php echo $file['id']; ?>, '<?php echo htmlspecialchars($file['original_name']); ?>')" title="Aperçu">
                                                 <i class="fas fa-eye"></i>
                                             </button>
                                         <?php endif; ?>
-                                        <button class="file-btn btn-download" onclick="downloadFile('<?php echo htmlspecialchars($file['file_path']); ?>', '<?php echo htmlspecialchars($file['original_name']); ?>')" title="Télécharger">
+                                        <button class="file-btn btn-download" onclick="downloadFile(<?php echo $file['id']; ?>, '<?php echo htmlspecialchars($file['original_name']); ?>')" title="Télécharger">
                                             <i class="fas fa-download"></i>
                                         </button>
                                     </div>
@@ -554,7 +554,7 @@
 
                     <!-- PDF Viewer (hidden by default) -->
                     <div class="pdf-viewer" id="pdfViewer" style="display: none;">
-                        <div style="display: flex; justify-content: between; align-items: center; margin-bottom: 1rem; padding: 0 1rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; padding: 0 1rem;">
                             <h3 id="pdfTitle" style="color: #1f2937; margin: 0;"></h3>
                             <button class="btn btn-secondary" onclick="closePDFViewer()">
                                 <i class="fas fa-times"></i>
@@ -655,7 +655,7 @@
                     </div>
                     <div class="info-item">
                         <i class="fas fa-calendar info-icon"></i>
-                        <span class="info-text">Il y a <?php echo $this->timeAgo($contact['created_at']); ?></span>
+                        <span class="info-text">Il y a <?php echo timeAgo($contact['created_at']); ?></span>
                     </div>
                 </div>
             </div>
@@ -678,9 +678,9 @@
 
     <script>
         // Fonctions pour la gestion des fichiers
-        function viewPDF(filePath, fileName) {
+        function viewPDF(fileId, fileName) {
             document.getElementById('pdfTitle').textContent = fileName;
-            document.getElementById('pdfFrame').src = '/' + filePath;
+            document.getElementById('pdfFrame').src = `/serve_file.php?id=${fileId}&view=true`;
             document.getElementById('pdfViewer').style.display = 'block';
             document.getElementById('pdfViewer').scrollIntoView({ behavior: 'smooth' });
         }
@@ -690,9 +690,9 @@
             document.getElementById('pdfFrame').src = '';
         }
 
-        function viewImage(filePath, fileName) {
+        function viewImage(fileId, fileName) {
             document.getElementById('imageTitle').textContent = fileName;
-            document.getElementById('modalImage').src = '/' + filePath;
+            document.getElementById('modalImage').src = `/serve_file.php?id=${fileId}&view=true`;
             document.getElementById('imageModal').style.display = 'block';
         }
 
@@ -701,9 +701,9 @@
             document.getElementById('modalImage').src = '';
         }
 
-        function downloadFile(filePath, fileName) {
+        function downloadFile(fileId, fileName) {
             const link = document.createElement('a');
-            link.href = '/' + filePath;
+            link.href = `/serve_file.php?id=${fileId}`;
             link.download = fileName;
             document.body.appendChild(link);
             link.click();
@@ -762,7 +762,6 @@
 
         // Auto-refresh du statut
         function checkForUpdates() {
-            // Vérifier si le message a été mis à jour par un autre utilisateur
             fetch(`/admin/api/message-status/${<?php echo $contact['id']; ?>}`)
                 .then(response => response.json())
                 .then(data => {

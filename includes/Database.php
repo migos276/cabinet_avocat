@@ -49,7 +49,8 @@ class Database {
             order_position INTEGER DEFAULT 0,
             is_active INTEGER DEFAULT 1,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            detailed_content TEXT
         );
 
         CREATE TABLE IF NOT EXISTS team_members (
@@ -105,43 +106,8 @@ class Database {
             $this->connection->exec("ALTER TABLE services ADD COLUMN detailed_content TEXT;");
         }
         
-        // Mettre à jour les contenus détaillés par défaut
-        $this->updateDefaultContent();
-        
         // Insérer les données par défaut
         $this->insertDefaultData();
-    }
-    
-    private function updateDefaultContent() {
-        $sql = "
-        UPDATE services SET detailed_content = ?
-        WHERE detailed_content IS NULL OR detailed_content = ''";
-        
-        $defaultContent = '
-        <h3>Notre approche</h3>
-        <p>Nous privilégions une approche personnalisée et sur-mesure pour chaque client. Notre méthode comprend :</p>
-        <ul>
-            <li>Analyse approfondie de votre situation</li>
-            <li>Conseil juridique adapté à vos besoins</li>
-            <li>Accompagnement tout au long de la procédure</li>
-            <li>Suivi post-dossier et conseils préventifs</li>
-        </ul>
-
-        <h3>Pourquoi nous choisir ?</h3>
-        <p>Fort de plus de 20 ans d\'expérience, notre cabinet vous garantit :</p>
-        <ul>
-            <li>Une expertise reconnue dans ce domaine</li>
-            <li>Un accompagnement personnalisé</li>
-            <li>Une disponibilité et une réactivité optimales</li>
-            <li>Des tarifs transparents et compétitifs</li>
-        </ul>
-
-        <h3>Première consultation</h3>
-        <p>Nous vous proposons une première consultation gratuite pour évaluer votre situation et vous présenter les différentes options qui s\'offrent à vous. Cette rencontre nous permet de mieux comprendre vos besoins et de vous proposer la stratégie la plus adaptée.</p>
-        ';
-        
-        $stmt = $this->connection->prepare($sql);
-        $stmt->execute([$defaultContent]);
     }
     
     private function insertDefaultData() {
@@ -187,54 +153,118 @@ class Database {
                 'description' => 'Accompagnement juridique complet pour les entreprises, de la création aux opérations complexes.',
                 'icon' => 'fas fa-briefcase',
                 'color' => '#3b82f6',
-                'order_position' => 1
+                'order_position' => 1,
+                'detailed_content' => '
+                    Notre expertise en droit des affaires
+                    Nous offrons un accompagnement juridique complet pour les entreprises, couvrant la création, le développement et les opérations complexes telles que fusions et acquisitions.
+                    
+                        Conseil en création et structuration d\'entreprises
+                        Rédaction et négociation de contrats commerciaux
+                        Accompagnement dans les fusions, acquisitions et restructurations
+                        Gestion des litiges commerciaux
+
+                    Pourquoi nous choisir ?
+                    Avec plus de 20 ans d expérience, notre cabinet garantit
+                    
+                        Une expertise pointue en droit des sociétés
+                        Des solutions stratégiques pour optimiser vos opérations
+                        Une réactivité face aux besoins urgents de votre entreprise
+                        Des honoraires transparents et adaptés
+                    
+
+                    Première consultation
+                    Profitez d une première consultation gratuite pour discuter de vos projets d\'entreprise et identifier les meilleures solutions juridiques adaptées à vos objectifs
+                '
             ],
             [
                 'title' => 'Droit de la Famille',
                 'description' => 'Conseil et représentation dans tous les aspects du droit familial et matrimonial.',
                 'icon' => 'fas fa-heart',
                 'color' => '#ef4444',
-                'order_position' => 2
+                'order_position' => 2,
+                'detailed_content' => '
+                    Notre accompagnement en droit de la famille
+                    Nous vous assistons avec sensibilité et rigueur dans toutes les questions liées au droit de la famille, y compris les divorces, les successions et la protection des mineurs.
+                    
+                        Conseil et médiation en cas de divorce ou séparation
+                        Gestion des pensions alimentaires et des droits de garde
+                        Planification successorale et partage des biens
+                        Protection juridique des enfants et adoption
+                    
+
+                    Pourquoi nous choisir ?
+                    Notre cabinet se distingue par :
+                    
+                        Une approche empathique et respectueuse
+                        Une expertise approfondie en droit familial
+                        Un accompagnement personnalisé à chaque étape
+                        Une disponibilité pour répondre à vos préoccupations
+                    
+
+                    Première consultation
+                    Nous offrons une consultation initiale gratuite pour évaluer votre situation familiale et vous proposer des solutions adaptées à vos besoins spécifiques.
+                '
             ],
             [
                 'title' => 'Droit Immobilier',
                 'description' => 'Expertise en transactions immobilières, copropriété et contentieux immobiliers.',
                 'icon' => 'fas fa-home',
                 'color' => '#10b981',
-                'order_position' => 3
+                'order_position' => 3,
+                'detailed_content' => '
+                    Notre expertise en droit immobilier
+                    Que vous soyez acheteur, vendeur ou propriétaire, nous vous accompagnons dans toutes vos démarches immobilières, des transactions aux litiges complexes.
+                    
+                        Rédaction et analyse de contrats de vente ou de location
+                        Gestion des litiges en copropriété
+                        Conseil en droit de la construction
+                        Représentation dans les contentieux immobiliers
+                    
+
+                    Pourquoi nous choisir ?
+                    Notre cabinet se démarque par :
+                    
+                        Une connaissance approfondie du marché immobilier
+                        Une expertise en négociation de contrats complexes
+                        Une défense rigoureuse de vos intérêts
+                        Des solutions pratiques et efficaces
+                    
+
+                    Première consultation
+                    Contactez-nous pour une première consultation gratuite afin d\'évaluer vos besoins immobiliers et recevoir des conseils juridiques personnalisés.
+                '
             ],
             [
                 'title' => 'Droit du Travail',
                 'description' => 'Protection des droits des salariés et conseil aux employeurs en droit social.',
                 'icon' => 'fas fa-users',
                 'color' => '#f59e0b',
-                'order_position' => 4
+                'order_position' => 4,
+                'detailed_content' => '
+                    Notre accompagnement en droit du travail
+                    Nous défendons les intérêts des salariés et conseillons les employeurs pour assurer la conformité et la résolution des conflits en droit social.
+            
+                        Rédaction et négociation de contrats de travail
+                        Conseil en licenciements et ruptures conventionnelles
+                        Représentation devant les prud\'hommes
+                        Accompagnement en matière de santé et sécurité au travail
+
+                    Pourquoi nous choisir ?
+                    Notre cabinet vous offre 
+                        Une expertise reconnue en droit social
+                        Une défense proactive de vos droits
+                        Des conseils pratiques pour éviter les litiges
+                        Une disponibilité pour répondre à vos urgences
+                    
+
+                    Première consultation
+                    Profitez d une première consultation gratuite pour analyser votre situation en droit du travail et explorer les options disponibles.
+                '
             ]
         ];
         
         $sql = "INSERT INTO services (title, description, icon, color, order_position, detailed_content) VALUES (?, ?, ?, ?, ?, ?)";
         $stmt = $this->connection->prepare($sql);
-        
-        $defaultDetailedContent = '
-        Notre approche
-        Nous privilégions une approche personnalisée et sur-mesure pour chaque client. Notre méthode comprend
-        
-            Analyse approfondie de votre situation
-            Conseil juridique adapté à vos besoins
-            Accompagnement tout au long de la procédure
-            Suivi post-dossier et conseils préventifs
-
-        Pourquoi nous choisir ?
-        Fort de plus de 20 ans d\'expérience, notre cabinet vous garantit
-            Une expertise reconnue dans ce domaine
-            Un accompagnement personnalisé
-            Une disponibilité et une réactivité optimales
-            Des tarifs transparents et compétitifs
-        
-
-        Première consultation
-        Nous vous proposons une première consultation gratuite pour évaluer votre situation et vous présenter les différentes options qui s\'offrent à vous.
-        ';
         
         foreach ($defaultServices as $service) {
             $stmt->execute([
@@ -243,7 +273,7 @@ class Database {
                 $service['icon'],
                 $service['color'],
                 $service['order_position'],
-                $defaultDetailedContent
+                $service['detailed_content']
             ]);
         }
     }
@@ -282,5 +312,6 @@ class Database {
             ]);
         }
     }
+    
 }
 ?>

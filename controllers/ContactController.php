@@ -9,7 +9,7 @@ class ContactController {
         $database = new Database();
         $this->db = $database->getConnection();
         
-        $this->uploadDir = __DIR__ . '/../uploads/';
+        $this->uploadDir = __DIR__ . '/../Uploads/';
         
         // Créer le dossier d'upload s'il n'existe pas
         if (!file_exists($this->uploadDir)) {
@@ -111,15 +111,17 @@ class ContactController {
                 // Générer un nom de fichier unique
                 $uniqueName = time() . '_' . uniqid() . '.' . $fileType;
                 $filePath = $contactDir . $uniqueName;
+                // Stocker le chemin relatif pour la base de données
+                $relativePath = 'Uploads/contact_' . $contactId . '/' . $uniqueName;
                 
                 if (move_uploaded_file($tmpName, $filePath)) {
-                    // Sauvegarder en base
+                    // Sauvegarder en base avec le chemin relatif
                     $stmt = $this->db->prepare("
                         INSERT INTO contact_files (contact_id, original_name, file_name, file_path, file_size, file_type, uploaded_at) 
                         VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
                     ");
                     
-                    if ($stmt->execute([$contactId, $fileName, $uniqueName, $filePath, $fileSize, $fileType])) {
+                    if ($stmt->execute([$contactId, $fileName, $uniqueName, $relativePath, $fileSize, $fileType])) {
                         $uploadedFiles[] = [
                             'original_name' => $fileName,
                             'file_name' => $uniqueName,
