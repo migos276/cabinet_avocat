@@ -29,6 +29,11 @@
             --shadow-light: rgba(0, 0, 0, 0.1);
             --shadow-medium: rgba(0, 0, 0, 0.15);
             --gradient-bg: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+            --success-color: #059669;
+            --danger-color: #dc2626;
+            --border-color: #d1d5db;
+            --bg-light: #f9fafb;
+            --primary-color: #2563eb;
         }
 
         * {
@@ -608,83 +613,6 @@
             border: 1px solid #fecaca;
         }
 
-        /* Responsive Design */
-        @media (max-width: 768px) {
-            .navbar-nav {
-                display: none;
-            }
-
-            .mobile-menu-toggle {
-                display: block;
-            }
-
-            .hero h1 {
-                font-size: 2.5rem;
-            }
-
-            .hero .lead {
-                font-size: 1.1rem;
-            }
-
-            .hero-buttons {
-                flex-direction: column;
-            }
-
-            .about-grid {
-                grid-template-columns: 1fr;
-                gap: 2rem;
-            }
-
-            .image-area {
-                height: 300px;
-            }
-
-            .section-title h2 {
-                font-size: 2rem;
-            }
-
-            .services-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .form-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .contact-form {
-                padding: 2rem;
-            }
-
-            .section {
-                padding: 60px 0;
-            }
-
-            .footer-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .hero h1 {
-                font-size: 2rem;
-            }
-
-            .container {
-                padding: 0 0.5rem;
-            }
-
-            .service-card {
-                padding: 1.5rem;
-            }
-        }
-
-        /* Utility Classes */
-        .text-center { text-align: center; }
-        .mb-4 { margin-bottom: 1rem; }
-        .mb-6 { margin-bottom: 1.5rem; }
-        .mb-8 { margin-bottom: 2rem; }
-        .max-w-4xl { max-width: 56rem; }
-        .mx-auto { margin-left: auto; margin-right: auto; }
         /* Section Nos Valeurs */
         .values-section {
             padding: 80px 0;
@@ -712,11 +640,6 @@
             z-index: 2;
         }
 
-        .section-title {
-            text-align: center;
-            margin-bottom: 4rem;
-        }
-
         .badge {
             display: inline-block;
             background: var(--light-blue);
@@ -728,21 +651,6 @@
             margin-bottom: 1rem;
         }
 
-        .section-title h2 {
-            font-size: 2.5rem;
-            color: var(--primary-blue);
-            margin-bottom: 1rem;
-            font-weight: 700;
-        }
-
-        .section-title .lead {
-            font-size: 1.2rem;
-            color: var(--text-light);
-            max-width: 600px;
-            margin: 0 auto;
-        }
-
-        /* Grille des valeurs */
         .values-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -784,22 +692,6 @@
             box-shadow: 0 15px 40px var(--shadow-medium);
         }
 
-        .value-card:nth-child(1):hover {
-            box-shadow: 0 15px 40px rgba(59, 130, 246, 0.2);
-        }
-
-        .value-card:nth-child(2):hover {
-            box-shadow: 0 15px 40px rgba(245, 158, 11, 0.2);
-        }
-
-        .value-card:nth-child(3):hover {
-            box-shadow: 0 15px 40px rgba(16, 185, 129, 0.2);
-        }
-
-        .value-card:nth-child(4):hover {
-            box-shadow: 0 15px 40px rgba(139, 92, 246, 0.2);
-        }
-
         .value-icon {
             width: 80px;
             height: 80px;
@@ -810,21 +702,6 @@
             justify-content: center;
             position: relative;
             transition: all 0.4s ease;
-        }
-
-        .value-icon::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            border-radius: 20px;
-            background: inherit;
-            filter: blur(20px);
-            opacity: 0;
-            transition: opacity 0.4s ease;
-        }
-
-        .value-card:hover .value-icon::before {
-            opacity: 0.3;
         }
 
         .value-icon i {
@@ -849,10 +726,6 @@
 
         .value-icon.green {
             background: linear-gradient(135deg, #10b981, #059669);
-        }
-
-        .value-icon.purple {
-            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
         }
 
         .value-card h4 {
@@ -880,7 +753,6 @@
             color: var(--text-dark);
         }
 
-        /* Section statistiques/engagement */
         .values-commitment {
             background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
             border-radius: 20px;
@@ -942,7 +814,6 @@
             line-height: 1.6;
         }
 
-        /* Animations */
         @keyframes rotate {
             from {
                 transform: rotate(0deg);
@@ -952,72 +823,10 @@
             }
         }
 
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
         .fade-in-up {
             animation: fadeInUp 0.8s ease-out forwards;
         }
 
-        /* Responsive Design */
-        @media (max-width: 768px) {
-            .values-section {
-                padding: 60px 0;
-            }
-
-            .section-title h2 {
-                font-size: 2rem;
-            }
-
-            .values-grid {
-                grid-template-columns: 1fr;
-                gap: 1.5rem;
-            }
-
-            .value-card {
-                padding: 2rem;
-            }
-
-            .values-commitment {
-                padding: 2rem;
-            }
-
-            .commitment-stats {
-                grid-template-columns: repeat(2, 1fr);
-                gap: 1rem;
-            }
-
-            .stat-number {
-                font-size: 2rem;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .value-card {
-                padding: 1.5rem;
-            }
-
-            .value-icon {
-                width: 70px;
-                height: 70px;
-            }
-
-            .value-icon i {
-                font-size: 1.8rem;
-            }
-
-            .commitment-stats {
-                grid-template-columns: 1fr;
-            }
-        }
         /* Styles pour l'upload de fichiers */
         .file-upload-section {
             margin: 2rem 0;
@@ -1060,7 +869,7 @@
         }
 
         .file-upload-button:hover {
-            background: var(--secondary-color);
+            background: var(--secondary-blue);
         }
 
         .file-preview {
@@ -1144,21 +953,23 @@
             text-align: center;
         }
 
-        .progress-bar {
-            width: 100%;
-            height: 4px;
-            background: var(--border-color);
-            border-radius: 2px;
-            overflow: hidden;
+        .file-preview-btn {
+            background: var(--secondary-blue);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.8rem;
             margin-top: 0.5rem;
+            transition: all 0.3s ease;
         }
 
-        .progress-bar-fill {
-            height: 100%;
-            background: var(--primary-color);
-            width: 0%;
-            transition: width 0.3s ease;
+        .file-preview-btn:hover {
+            background: var(--primary-blue);
+            transform: translateY(-1px);
         }
+
         #contactMessage {
             margin-bottom: 1rem;
             padding: 1rem;
@@ -1177,6 +988,211 @@
             color: var(--danger-color);
             border: 1px solid var(--danger-color);
         }
+
+        /* Styles pour modal de prévisualisation */
+        .file-preview-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-backdrop {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 15px;
+            max-width: 90vw;
+            max-height: 90vh;
+            overflow: hidden;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
+        }
+        
+        .modal-header {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f8fafc;
+        }
+        
+        .modal-header h3 {
+            margin: 0;
+            font-size: 1.2rem;
+            color: #1f2937;
+        }
+        
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: #6b7280;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+        
+        .modal-close:hover {
+            background: #ef4444;
+            color: white;
+        }
+        
+        .modal-body {
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .navbar-nav {
+                display: none;
+            }
+
+            .mobile-menu-toggle {
+                display: block;
+            }
+
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+
+            .hero .lead {
+                font-size: 1.1rem;
+            }
+
+            .hero-buttons {
+                flex-direction: column;
+            }
+
+            .about-grid {
+                grid-template-columns: 1fr;
+                gap: 2rem;
+            }
+
+            .image-area {
+                height: 300px;
+            }
+
+            .section-title h2 {
+                font-size: 2rem;
+            }
+
+            .services-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .contact-form {
+                padding: 2rem;
+            }
+
+            .section {
+                padding: 60px 0;
+            }
+
+            .footer-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .values-section {
+                padding: 60px 0;
+            }
+
+            .values-grid {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+
+            .value-card {
+                padding: 2rem;
+            }
+
+            .values-commitment {
+                padding: 2rem;
+            }
+
+            .commitment-stats {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 1rem;
+            }
+
+            .stat-number {
+                font-size: 2rem;
+            }
+
+            .modal-content {
+                max-width: 95vw;
+                max-height: 95vh;
+                margin: 1rem;
+            }
+            
+            .modal-body iframe,
+            .modal-body img {
+                width: 100%;
+                height: auto !important;
+                max-height: 60vh !important;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .hero h1 {
+                font-size: 2rem;
+            }
+
+            .container {
+                padding: 0 0.5rem;
+            }
+
+            .service-card {
+                padding: 1.5rem;
+            }
+
+            .value-card {
+                padding: 1.5rem;
+            }
+
+            .value-icon {
+                width: 70px;
+                height: 70px;
+            }
+
+            .value-icon i {
+                font-size: 1.8rem;
+            }
+
+            .commitment-stats {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Utility Classes */
+        .text-center { text-align: center; }
+        .mb-4 { margin-bottom: 1rem; }
+        .mb-6 { margin-bottom: 1.5rem; }
+        .mb-8 { margin-bottom: 2rem; }
+        .max-w-4xl { max-width: 56rem; }
+        .mx-auto { margin-left: auto; margin-right: auto; }
     </style>
 </head>
 <body>
@@ -1246,6 +1262,7 @@
             </div>
         </div>
     </section>
+
     <!-- About Section -->
     <section id="about" class="section_about">
         <div class="container">
@@ -1297,7 +1314,8 @@
             </div>
         </div>
     </section>
-<!-- Section Nos Valeurs -->
+
+    <!-- Section Nos Valeurs -->
     <section class="values-section">
         <div class="container">
             <div class="section-title">
@@ -1376,34 +1394,34 @@
     </section>
 
     <!-- Services Section -->
-    <!-- Services Section - À remplacer dans home.php -->
-<section id="services" class="section">
-    <div class="container">
-        <div class="section-title">
-            <span class="badge mb-4">Nos spécialisations</span>
-            <h2><?php echo htmlspecialchars($content['services']['title'] ?? 'Domaines d\'Expertise'); ?></h2>
-            <p class="lead">
-                <?php echo htmlspecialchars($content['services']['subtitle'] ?? 'Une expertise reconnue dans des domaines juridiques essentiels pour répondre à tous vos besoins'); ?>
-            </p>
-        </div>
-
-        <div class="services-grid">
-            <?php foreach ($services as $service): ?>
-            <div class="service-card">
-                <div class="service-icon" style="background: <?php echo htmlspecialchars($service['color']); ?>;">
-                    <i class="<?php echo htmlspecialchars($service['icon']); ?>"></i>
-                </div>
-                <h4><?php echo htmlspecialchars($service['title']); ?></h4>
-                <p><?php echo htmlspecialchars($service['description']); ?></p>
-                <a href="/service/<?php echo $service['id']; ?>" class="btn btn-outline">
-                    <i class="fas fa-arrow-right"></i>
-                    En savoir plus
-                </a>
+    <section id="services" class="section">
+        <div class="container">
+            <div class="section-title">
+                <span class="badge mb-4">Nos spécialisations</span>
+                <h2><?php echo htmlspecialchars($content['services']['title'] ?? 'Domaines d\'Expertise'); ?></h2>
+                <p class="lead">
+                    <?php echo htmlspecialchars($content['services']['subtitle'] ?? 'Une expertise reconnue dans des domaines juridiques essentiels pour répondre à tous vos besoins'); ?>
+                </p>
             </div>
-            <?php endforeach; ?>
+
+            <div class="services-grid">
+                <?php foreach ($services as $service): ?>
+                <div class="service-card">
+                    <div class="service-icon" style="background: <?php echo htmlspecialchars($service['color']); ?>;">
+                        <i class="<?php echo htmlspecialchars($service['icon']); ?>"></i>
+                    </div>
+                    <h4><?php echo htmlspecialchars($service['title']); ?></h4>
+                    <p><?php echo htmlspecialchars($service['description']); ?></p>
+                    <a href="/service/<?php echo $service['id']; ?>" class="btn btn-outline">
+                        <i class="fas fa-arrow-right"></i>
+                        En savoir plus
+                    </a>
+                </div>
+                <?php endforeach; ?>
+            </div>
         </div>
-    </div>
-</section>
+    </section>
+
     <!-- Team Section -->
     <section id="team" class="section" style="background: var(--gradient-bg);">
         <div class="container">
@@ -1429,6 +1447,7 @@
             </div>
         </div>
     </section>
+
     <!-- Contact Section -->
     <section id="contact" class="section contact-section">
         <div class="container">
@@ -1513,6 +1532,7 @@
             </div>
         </div>
     </section>
+
     <!-- Footer -->
     <footer class="footer">
         <div class="container">
@@ -1625,7 +1645,7 @@
                 e.preventDefault();
                 const target = document.querySelector(this.getAttribute('href'));
                 if (target) {
-                    const offsetTop = target.offsetTop - 80; // Account for fixed navbar
+                    const offsetTop = target.offsetTop - 80;
                     window.scrollTo({
                         top: offsetTop,
                         behavior: 'smooth'
@@ -1673,84 +1693,6 @@
             });
         });
 
-        // Form submission with AJAX
-        document.getElementById('contactForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-
-            // Get form data
-            const formData = new FormData(this);
-
-            // Simple form validation
-            const requiredFields = this.querySelectorAll('[required]');
-            let isValid = true;
-            let errors = [];
-
-            requiredFields.forEach(field => {
-                if (!field.value.trim()) {
-                    field.style.borderColor = '#ef4444';
-                    isValid = false;
-                    errors.push(`${field.name} est requis`);
-                } else {
-                    field.style.borderColor = '#e5e7eb';
-                }
-            });
-
-            // Email validation
-            const email = document.getElementById('email');
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (email.value && !emailRegex.test(email.value)) {
-                email.style.borderColor = '#ef4444';
-                isValid = false;
-                errors.push('Format email invalide');
-            }
-
-            if (isValid) {
-                const submitBtn = this.querySelector('button[type="submit"]');
-                const originalText = submitBtn.innerHTML;
-                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Envoi en cours...';
-                submitBtn.disabled = true;
-
-                // Submit form via AJAX
-                fetch('/contact', {
-                    method: 'POST',
-                    body: formData
-                })
-                .then(response => response.json())
-                .then(data => {
-                    const messageDiv = document.getElementById('contactMessage');
-                    if (data.success) {
-                        messageDiv.innerHTML = '<div class="alert alert-success">' + data.message + '</div>';
-                        this.reset();
-                        // Reset field borders
-                        requiredFields.forEach(field => {
-                            field.style.borderColor = '#e5e7eb';
-                        });
-                    } else {
-                        if (data.errors) {
-                            messageDiv.innerHTML = '<div class="alert alert-error">Erreurs: ' + data.errors.join(', ') + '</div>';
-                        } else {
-                            messageDiv.innerHTML = '<div class="alert alert-error">' + data.message + '</div>';
-                        }
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    document.getElementById('contactMessage').innerHTML = '<div class="alert alert-error">Erreur lors de l\'envoi du message</div>';
-                })
-                .finally(() => {
-                    submitBtn.innerHTML = originalText;
-                    submitBtn.disabled = false;
-                });
-            } else {
-                alert('Veuillez corriger les erreurs dans le formulaire :\n' + errors.join('\n'));
-            }
-        });
-
-        // Initialize animations on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('Site Cabinet Juridique Excellence chargé avec succès');
-        });
-
         // Close mobile menu when clicking outside
         document.addEventListener('click', function(e) {
             const mobileMenu = document.getElementById('mobileMenu');
@@ -1761,6 +1703,7 @@
                 document.querySelector('.mobile-menu-toggle i').className = 'fas fa-bars';
             }
         });
+
         // Animation au scroll pour les cartes
         function animateOnScroll() {
             const cards = document.querySelectorAll('.value-card, .values-commitment');
@@ -1831,7 +1774,6 @@
                     } else if (isTime) {
                         element.textContent = displayValue + 'h';
                     } else {
-                        // Pour 1000+, afficher avec format
                         if (endValue >= 1000) {
                             element.textContent = Math.floor(startValue) + '+';
                         } else {
@@ -1841,7 +1783,6 @@
                     
                     requestAnimationFrame(updateCounter);
                 } else {
-                    // Valeur finale
                     if (isPercent) {
                         element.textContent = endValue + '%';
                     } else if (isPlus) {
@@ -1859,6 +1800,377 @@
             updateCounter();
         }
 
+        // Gestionnaire de fichiers - CLASSE UNIQUE POUR ÉVITER LES DOUBLONS
+        class FileUploadManager {
+            constructor() {
+                this.files = [];
+                this.maxFileSize = 10 * 1024 * 1024; // 10MB
+                this.maxFiles = 5;
+                this.allowedTypes = [
+                    'application/pdf', 
+                    'application/msword', 
+                    'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 
+                    'image/jpeg', 
+                    'image/jpg', 
+                    'image/png'
+                ];
+                this.init();
+            }
+
+            init() {
+                const fileInput = document.getElementById('fileInput');
+                const uploadSection = document.getElementById('fileUploadSection');
+                
+                if (!fileInput || !uploadSection) return;
+                
+                // Events pour le drag & drop
+                uploadSection.addEventListener('dragover', this.handleDragOver.bind(this));
+                uploadSection.addEventListener('dragleave', this.handleDragLeave.bind(this));
+                uploadSection.addEventListener('drop', this.handleDrop.bind(this));
+                
+                // Event pour la sélection de fichiers
+                fileInput.addEventListener('change', this.handleFileSelect.bind(this));
+                
+                // IMPORTANT : UN SEUL gestionnaire pour le formulaire
+                const form = document.getElementById('contactForm');
+                if (form) {
+                    form.addEventListener('submit', this.handleFormSubmit.bind(this));
+                }
+            }
+
+            handleDragOver(e) {
+                e.preventDefault();
+                document.getElementById('fileUploadSection').classList.add('drag-over');
+            }
+
+            handleDragLeave(e) {
+                e.preventDefault();
+                if (!e.currentTarget.contains(e.relatedTarget)) {
+                    document.getElementById('fileUploadSection').classList.remove('drag-over');
+                }
+            }
+
+            handleDrop(e) {
+                e.preventDefault();
+                document.getElementById('fileUploadSection').classList.remove('drag-over');
+                const files = Array.from(e.dataTransfer.files);
+                this.addFiles(files);
+            }
+
+            handleFileSelect(e) {
+                const files = Array.from(e.target.files);
+                this.addFiles(files);
+            }
+
+            addFiles(newFiles) {
+                for (const file of newFiles) {
+                    if (this.files.length >= this.maxFiles) {
+                        this.showMessage(`Maximum ${this.maxFiles} fichiers autorisés`, 'error');
+                        break;
+                    }
+
+                    if (this.validateFile(file)) {
+                        const fileId = 'file_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                        const fileObj = {
+                            id: fileId,
+                            file: file,
+                            name: file.name,
+                            size: file.size,
+                            type: file.type,
+                            status: 'ready'
+                        };
+                        
+                        this.files.push(fileObj);
+                        this.renderFilePreview(fileObj);
+                    }
+                }
+                this.updateFileInput();
+            }
+
+            validateFile(file) {
+                if (!this.allowedTypes.includes(file.type)) {
+                    this.showMessage(`Type de fichier non autorisé: ${file.name}`, 'error');
+                    return false;
+                }
+
+                if (file.size > this.maxFileSize) {
+                    this.showMessage(`Fichier trop volumineux: ${file.name} (Max: 10MB)`, 'error');
+                    return false;
+                }
+
+                if (this.files.some(f => f.name === file.name && f.size === file.size)) {
+                    this.showMessage(`Fichier déjà ajouté: ${file.name}`, 'error');
+                    return false;
+                }
+
+                return true;
+            }
+
+            renderFilePreview(fileObj) {
+                const preview = document.getElementById('filePreview');
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-item';
+                fileItem.id = fileObj.id;
+
+                const iconClass = this.getFileIcon(fileObj.type);
+                const formattedSize = this.formatFileSize(fileObj.size);
+
+                fileItem.innerHTML = `
+                    <div class="file-item-header">
+                        <i class="${iconClass} file-icon"></i>
+                        <button type="button" class="file-remove" onclick="window.fileUploader.removeFile('${fileObj.id}')">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="file-info">
+                        <div class="file-name">${this.escapeHtml(fileObj.name)}</div>
+                        <div class="file-size">${formattedSize}</div>
+                        <div class="file-status success">Prêt à envoyer</div>
+                    </div>
+                    ${this.canPreview(fileObj.type) ? `
+                        <div class="file-preview-container">
+                            <button type="button" class="file-preview-btn" onclick="window.fileUploader.previewFile('${fileObj.id}')">
+                                <i class="fas fa-eye"></i> Aperçu
+                            </button>
+                        </div>
+                    ` : ''}
+                `;
+
+                preview.appendChild(fileItem);
+            }
+
+            removeFile(fileId) {
+                this.files = this.files.filter(f => f.id !== fileId);
+                const fileElement = document.getElementById(fileId);
+                if (fileElement) {
+                    fileElement.remove();
+                }
+                this.updateFileInput();
+            }
+
+            updateFileInput() {
+                const fileInput = document.getElementById('fileInput');
+                const dataTransfer = new DataTransfer();
+                
+                this.files.forEach(fileObj => {
+                    dataTransfer.items.add(fileObj.file);
+                });
+                
+                fileInput.files = dataTransfer.files;
+            }
+
+            canPreview(type) {
+                return type === 'application/pdf' || type.startsWith('image/');
+            }
+
+            previewFile(fileId) {
+                const fileObj = this.files.find(f => f.id === fileId);
+                if (!fileObj) return;
+
+                if (fileObj.type === 'application/pdf') {
+                    this.previewPDF(fileObj);
+                } else if (fileObj.type.startsWith('image/')) {
+                    this.previewImage(fileObj);
+                }
+            }
+
+            previewPDF(fileObj) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const modal = document.createElement('div');
+                    modal.className = 'file-preview-modal';
+                    modal.innerHTML = `
+                        <div class="modal-backdrop" onclick="this.parentElement.remove()">
+                            <div class="modal-content" onclick="event.stopPropagation()">
+                                <div class="modal-header">
+                                    <h3>${this.escapeHtml(fileObj.name)}</h3>
+                                    <button class="modal-close" onclick="this.closest('.file-preview-modal').remove()">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                                <div class="modal-body">
+                                    <iframe src="${e.target.result}" style="width: 100%; height: 600px; border: none;"></iframe>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    document.body.appendChild(modal);
+                };
+                reader.readAsDataURL(fileObj.file);
+            }
+
+            previewImage(fileObj) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const modal = document.createElement('div');
+                    modal.className = 'file-preview-modal';
+                    modal.innerHTML = `
+                        <div class="modal-backdrop" onclick="this.parentElement.remove()">
+                            <div class="modal-content" onclick="event.stopPropagation()">
+                                <div class="modal-header">
+                                    <h3>${this.escapeHtml(fileObj.name)}</h3>
+                                    <button class="modal-close" onclick="this.closest('.file-preview-modal').remove()">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                                <div class="modal-body">
+                                    <img src="${e.target.result}" style="max-width: 100%; max-height: 80vh; object-fit: contain;" alt="${this.escapeHtml(fileObj.name)}">
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    document.body.appendChild(modal);
+                };
+                reader.readAsDataURL(fileObj.file);
+            }
+
+            async handleFormSubmit(e) {
+                e.preventDefault();
+                e.stopImmediatePropagation(); // Empêche tout autre gestionnaire de se déclencher
+                
+                const form = e.target;
+                const formData = new FormData(form);
+                
+                // Validation des champs requis
+                const requiredFields = form.querySelectorAll('[required]');
+                let isValid = true;
+                let errors = [];
+
+                requiredFields.forEach(field => {
+                    if (!field.value.trim()) {
+                        field.style.borderColor = '#ef4444';
+                        isValid = false;
+                        errors.push(`${field.name} est requis`);
+                    } else {
+                        field.style.borderColor = '#e5e7eb';
+                    }
+                });
+
+                // Validation email
+                const email = document.getElementById('email');
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (email.value && !emailRegex.test(email.value)) {
+                    email.style.borderColor = '#ef4444';
+                    isValid = false;
+                    errors.push('Format email invalide');
+                }
+
+                if (!isValid) {
+                    this.showMessage('Erreurs: ' + errors.join(', '), 'error');
+                    return;
+                }
+
+                const submitButton = form.querySelector('button[type="submit"]');
+                const originalText = submitButton.innerHTML;
+                submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Envoi en cours...';
+                submitButton.disabled = true;
+
+                try {
+                    // Ajouter les fichiers au FormData
+                    this.files.forEach((fileObj, index) => {
+                        formData.append(`documents[${index}]`, fileObj.file);
+                    });
+
+                    const response = await fetch('/contact', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        this.showMessage(
+                            data.message + 
+                            (data.uploaded_files > 0 ? ` (${data.uploaded_files} fichier(s) joint(s))` : ''), 
+                            'success'
+                        );
+                        form.reset();
+                        this.files = [];
+                        document.getElementById('filePreview').innerHTML = '';
+                        
+                        // Reset field borders
+                        requiredFields.forEach(field => {
+                            field.style.borderColor = '#e5e7eb';
+                        });
+                    } else {
+                        if (data.errors) {
+                            this.showMessage('Erreurs: ' + data.errors.join(', '), 'error');
+                        } else {
+                            this.showMessage(data.message, 'error');
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    this.showMessage('Erreur lors de l\'envoi du message', 'error');
+                } finally {
+                    submitButton.innerHTML = originalText;
+                    submitButton.disabled = false;
+                }
+            }
+
+            getFileIcon(type) {
+                if (type === 'application/pdf') return 'fas fa-file-pdf';
+                if (type.includes('word') || type.includes('document')) return 'fas fa-file-word';
+                if (type.includes('image')) return 'fas fa-file-image';
+                return 'fas fa-file';
+            }
+
+            formatFileSize(bytes) {
+                if (bytes === 0) return '0 Bytes';
+                const k = 1024;
+                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            }
+
+            escapeHtml(unsafe) {
+                return unsafe
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;")
+                    .replace(/"/g, "&quot;")
+                    .replace(/'/g, "&#039;");
+            }
+
+            showMessage(text, type) {
+                const messageElement = document.getElementById('contactMessage');
+                if (!messageElement) return;
+                
+                messageElement.innerHTML = `
+                    <div class="alert alert-${type === 'error' ? 'error' : 'success'}">
+                        <i class="fas fa-${type === 'error' ? 'exclamation-triangle' : 'check-circle'}"></i>
+                        ${text}
+                    </div>
+                `;
+                messageElement.style.display = 'block';
+                
+                // Auto-hide après 5 secondes
+                setTimeout(() => {
+                    messageElement.style.display = 'none';
+                }, 5000);
+                
+                // Scroll vers le message
+                messageElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        }
+
+        // Initialisation au chargement de la page - UNE SEULE FOIS
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialiser les animations
+            animateOnScroll();
+            animateCounters();
+            
+            // Ajouter l'effet parallaxe seulement sur desktop
+            if (window.innerWidth > 768) {
+                addParallaxEffect();
+            }
+            
+            // Initialiser le gestionnaire de fichiers - STOCKÉ GLOBALEMENT
+            window.fileUploader = new FileUploadManager();
+            
+            console.log('Site Cabinet Juridique Excellence chargé avec succès');
+        });
+
         // Effet parallaxe léger pour les cartes
         function addParallaxEffect() {
             const cards = document.querySelectorAll('.value-card');
@@ -1869,25 +2181,12 @@
                 
                 cards.forEach((card, index) => {
                     const yPos = -(rate / (index + 1));
-                    if (Math.abs(yPos) < 100) { // Limiter l'effet
+                    if (Math.abs(yPos) < 100) {
                         card.style.transform = `translateY(${yPos}px)`;
                     }
                 });
             });
         }
-
-        // Initialisation au chargement de la page
-        document.addEventListener('DOMContentLoaded', function() {
-            animateOnScroll();
-            animateCounters();
-            
-            // Ajouter l'effet parallaxe seulement sur desktop
-            if (window.innerWidth > 768) {
-                addParallaxEffect();
-            }
-            
-            console.log('Section Nos Valeurs initialisée avec succès');
-        });
 
         // Réinitialiser les effets au redimensionnement
         window.addEventListener('resize', function() {
@@ -1898,494 +2197,16 @@
                 });
             }
         });
-    // Mise à jour du JavaScript dans home.php pour la gestion des fichiers
 
-class FileUploadManager {
-    constructor() {
-        this.files = [];
-        this.maxFileSize = 10 * 1024 * 1024; // 10MB
-        this.maxFiles = 5; // Maximum 5 fichiers
-        this.allowedTypes = [
-            'application/pdf', 
-            'application/msword', 
-            'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 
-            'image/jpeg', 
-            'image/jpg', 
-            'image/png'
-        ];
-        this.init();
-    }
-
-    init() {
-        const fileInput = document.getElementById('fileInput');
-        const uploadSection = document.getElementById('fileUploadSection');
-        
-        if (!fileInput || !uploadSection) return;
-        
-        // Events pour le drag & drop
-        uploadSection.addEventListener('dragover', this.handleDragOver.bind(this));
-        uploadSection.addEventListener('dragleave', this.handleDragLeave.bind(this));
-        uploadSection.addEventListener('drop', this.handleDrop.bind(this));
-        
-        // Event pour la sélection de fichiers
-        fileInput.addEventListener('change', this.handleFileSelect.bind(this));
-        
-        // Gérer le formulaire
-        const form = document.getElementById('contactForm');
-        if (form) {
-            form.addEventListener('submit', this.handleFormSubmit.bind(this));
-        }
-    }
-
-    handleDragOver(e) {
-        e.preventDefault();
-        document.getElementById('fileUploadSection').classList.add('drag-over');
-    }
-
-    handleDragLeave(e) {
-        e.preventDefault();
-        if (!e.currentTarget.contains(e.relatedTarget)) {
-            document.getElementById('fileUploadSection').classList.remove('drag-over');
-        }
-    }
-
-    handleDrop(e) {
-        e.preventDefault();
-        document.getElementById('fileUploadSection').classList.remove('drag-over');
-        const files = Array.from(e.dataTransfer.files);
-        this.addFiles(files);
-    }
-
-    handleFileSelect(e) {
-        const files = Array.from(e.target.files);
-        this.addFiles(files);
-    }
-
-    addFiles(newFiles) {
-        for (const file of newFiles) {
-            if (this.files.length >= this.maxFiles) {
-                this.showMessage(`Maximum ${this.maxFiles} fichiers autorisés`, 'error');
-                break;
-            }
-
-            if (this.validateFile(file)) {
-                const fileId = 'file_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-                const fileObj = {
-                    id: fileId,
-                    file: file,
-                    name: file.name,
-                    size: file.size,
-                    type: file.type,
-                    status: 'ready'
-                };
-                
-                this.files.push(fileObj);
-                this.renderFilePreview(fileObj);
-            }
-        }
-        this.updateFileInput();
-    }
-
-    validateFile(file) {
-        // Vérifier le type de fichier
-        if (!this.allowedTypes.includes(file.type)) {
-            this.showMessage(`Type de fichier non autorisé: ${file.name}`, 'error');
-            return false;
-        }
-
-        // Vérifier la taille
-        if (file.size > this.maxFileSize) {
-            this.showMessage(`Fichier trop volumineux: ${file.name} (Max: 10MB)`, 'error');
-            return false;
-        }
-
-        // Vérifier les doublons
-        if (this.files.some(f => f.name === file.name && f.size === file.size)) {
-            this.showMessage(`Fichier déjà ajouté: ${file.name}`, 'error');
-            return false;
-        }
-
-        return true;
-    }
-
-    renderFilePreview(fileObj) {
-        const preview = document.getElementById('filePreview');
-        const fileItem = document.createElement('div');
-        fileItem.className = 'file-item';
-        fileItem.id = fileObj.id;
-
-        const iconClass = this.getFileIcon(fileObj.type);
-        const formattedSize = this.formatFileSize(fileObj.size);
-
-        fileItem.innerHTML = `
-            <div class="file-item-header">
-                <i class="${iconClass} file-icon"></i>
-                <button type="button" class="file-remove" onclick="fileUploader.removeFile('${fileObj.id}')">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <div class="file-info">
-                <div class="file-name">${this.escapeHtml(fileObj.name)}</div>
-                <div class="file-size">${formattedSize}</div>
-                <div class="file-status success">Prêt à envoyer</div>
-            </div>
-            ${this.canPreview(fileObj.type) ? `
-                <div class="file-preview-container">
-                    <button type="button" class="file-preview-btn" onclick="fileUploader.previewFile('${fileObj.id}')">
-                        <i class="fas fa-eye"></i> Aperçu
-                    </button>
-                </div>
-            ` : ''}
-        `;
-
-        preview.appendChild(fileItem);
-    }
-
-    removeFile(fileId) {
-        this.files = this.files.filter(f => f.id !== fileId);
-        const fileElement = document.getElementById(fileId);
-        if (fileElement) {
-            fileElement.remove();
-        }
-        this.updateFileInput();
-    }
-
-    updateFileInput() {
-        const fileInput = document.getElementById('fileInput');
-        const dataTransfer = new DataTransfer();
-        
-        this.files.forEach(fileObj => {
-            dataTransfer.items.add(fileObj.file);
-        });
-        
-        fileInput.files = dataTransfer.files;
-    }
-
-    canPreview(type) {
-        return type === 'application/pdf' || type.startsWith('image/');
-    }
-
-    previewFile(fileId) {
-        const fileObj = this.files.find(f => f.id === fileId);
-        if (!fileObj) return;
-
-        if (fileObj.type === 'application/pdf') {
-            this.previewPDF(fileObj);
-        } else if (fileObj.type.startsWith('image/')) {
-            this.previewImage(fileObj);
-        }
-    }
-
-    previewPDF(fileObj) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const modal = document.createElement('div');
-            modal.className = 'file-preview-modal';
-            modal.innerHTML = `
-                <div class="modal-backdrop" onclick="this.parentElement.remove()">
-                    <div class="modal-content" onclick="event.stopPropagation()">
-                        <div class="modal-header">
-                            <h3>${fileUploader.escapeHtml(fileObj.name)}</h3>
-                            <button class="modal-close" onclick="this.closest('.file-preview-modal').remove()">
-                                <i class="fas fa-times"></i>
-                            </button>
-                        </div>
-                        <div class="modal-body">
-                            <iframe src="${e.target.result}" style="width: 100%; height: 600px; border: none;"></iframe>
-                        </div>
-                    </div>
-                </div>
-            `;
-            document.body.appendChild(modal);
-        };
-        reader.readAsDataURL(fileObj.file);
-    }
-
-    previewImage(fileObj) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const modal = document.createElement('div');
-            modal.className = 'file-preview-modal';
-            modal.innerHTML = `
-                <div class="modal-backdrop" onclick="this.parentElement.remove()">
-                    <div class="modal-content" onclick="event.stopPropagation()">
-                        <div class="modal-header">
-                            <h3>${fileUploader.escapeHtml(fileObj.name)}</h3>
-                            <button class="modal-close" onclick="this.closest('.file-preview-modal').remove()">
-                                <i class="fas fa-times"></i>
-                            </button>
-                        </div>
-                        <div class="modal-body">
-                            <img src="${e.target.result}" style="max-width: 100%; max-height: 80vh; object-fit: contain;" alt="${fileUploader.escapeHtml(fileObj.name)}">
-                        </div>
-                    </div>
-                </div>
-            `;
-            document.body.appendChild(modal);
-        };
-        reader.readAsDataURL(fileObj.file);
-    }
-
-    async handleFormSubmit(e) {
-        e.preventDefault();
-        
-        // Validation du formulaire
-        const form = e.target;
-        const formData = new FormData(form);
-        
-        // Validation des champs requis
-        const requiredFields = form.querySelectorAll('[required]');
-        let isValid = true;
-        let errors = [];
-
-        requiredFields.forEach(field => {
-            if (!field.value.trim()) {
-                field.style.borderColor = '#ef4444';
-                isValid = false;
-                errors.push(`${field.name} est requis`);
-            } else {
-                field.style.borderColor = '#e5e7eb';
-            }
-        });
-
-        // Validation email
-        const email = document.getElementById('email');
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (email.value && !emailRegex.test(email.value)) {
-            email.style.borderColor = '#ef4444';
-            isValid = false;
-            errors.push('Format email invalide');
-        }
-
-        if (!isValid) {
-            this.showMessage('Erreurs: ' + errors.join(', '), 'error');
-            return;
-        }
-
-        const submitButton = form.querySelector('button[type="submit"]');
-        const originalText = submitButton.innerHTML;
-        submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Envoi en cours...';
-        submitButton.disabled = true;
-
-        try {
-            // Ajouter les fichiers au FormData
-            this.files.forEach((fileObj, index) => {
-                formData.append(`documents[${index}]`, fileObj.file);
-            });
-
-            const response = await fetch('/contact', {
-                method: 'POST',
-                body: formData
-            });
-
-            const data = await response.json();
-            
-            if (data.success) {
-                this.showMessage(
-                    data.message + 
-                    (data.uploaded_files > 0 ? ` (${data.uploaded_files} fichier(s) joint(s))` : ''), 
-                    'success'
-                );
-                form.reset();
-                this.files = [];
-                document.getElementById('filePreview').innerHTML = '';
-                
-                // Reset field borders
-                requiredFields.forEach(field => {
-                    field.style.borderColor = '#e5e7eb';
-                });
-            } else {
-                if (data.errors) {
-                    this.showMessage('Erreurs: ' + data.errors.join(', '), 'error');
-                } else {
-                    this.showMessage(data.message, 'error');
+        // Gérer la fermeture des modals avec Escape
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                const modal = document.querySelector('.file-preview-modal');
+                if (modal) {
+                    modal.remove();
                 }
             }
-        } catch (error) {
-            console.error('Error:', error);
-            this.showMessage('Erreur lors de l\'envoi du message', 'error');
-        } finally {
-            submitButton.innerHTML = originalText;
-            submitButton.disabled = false;
-        }
-    }
-
-    getFileIcon(type) {
-        if (type === 'application/pdf') return 'fas fa-file-pdf';
-        if (type.includes('word') || type.includes('document')) return 'fas fa-file-word';
-        if (type.includes('image')) return 'fas fa-file-image';
-        return 'fas fa-file';
-    }
-
-    formatFileSize(bytes) {
-        if (bytes === 0) return '0 Bytes';
-        const k = 1024;
-        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-    }
-
-    escapeHtml(unsafe) {
-        return unsafe
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;")
-            .replace(/'/g, "&#039;");
-    }
-
-    showMessage(text, type) {
-        const messageElement = document.getElementById('contactMessage');
-        if (!messageElement) return;
-        
-        messageElement.innerHTML = `
-            <div class="alert alert-${type === 'error' ? 'error' : 'success'}">
-                <i class="fas fa-${type === 'error' ? 'exclamation-triangle' : 'check-circle'}"></i>
-                ${text}
-            </div>
-        `;
-        messageElement.style.display = 'block';
-        
-        // Auto-hide après 5 secondes
-        setTimeout(() => {
-            messageElement.style.display = 'none';
-        }, 5000);
-        
-        // Scroll vers le message
-        messageElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }
-}
-
-// Styles CSS additionnels pour les modals de prévisualisation
-const previewModalStyles = `
-    <style>
-        .file-preview-modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 10000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .modal-backdrop {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 2rem;
-        }
-        
-        .modal-content {
-            background: white;
-            border-radius: 15px;
-            max-width: 90vw;
-            max-height: 90vh;
-            overflow: hidden;
-            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
-        }
-        
-        .modal-header {
-            padding: 1rem 1.5rem;
-            border-bottom: 1px solid #e5e7eb;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: #f8fafc;
-        }
-        
-        .modal-header h3 {
-            margin: 0;
-            font-size: 1.2rem;
-            color: #1f2937;
-        }
-        
-        .modal-close {
-            background: none;
-            border: none;
-            font-size: 1.5rem;
-            color: #6b7280;
-            cursor: pointer;
-            padding: 0.5rem;
-            border-radius: 50%;
-            transition: all 0.3s ease;
-        }
-        
-        .modal-close:hover {
-            background: #ef4444;
-            color: white;
-        }
-        
-        .modal-body {
-            padding: 1.5rem;
-            text-align: center;
-        }
-        
-        .file-preview-btn {
-            background: var(--secondary-blue);
-            color: white;
-            border: none;
-            padding: 0.5rem 1rem;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 0.8rem;
-            margin-top: 0.5rem;
-            transition: all 0.3s ease;
-        }
-        
-        .file-preview-btn:hover {
-            background: var(--primary-blue);
-            transform: translateY(-1px);
-        }
-        
-        @media (max-width: 768px) {
-            .modal-content {
-                max-width: 95vw;
-                max-height: 95vh;
-                margin: 1rem;
-            }
-            
-            .modal-body iframe,
-            .modal-body img {
-                width: 100%;
-                height: auto !important;
-                max-height: 60vh !important;
-            }
-        }
-    </style>
-`;
-
-// Ajouter les styles au head
-if (!document.querySelector('#preview-modal-styles')) {
-    const styleElement = document.createElement('div');
-    styleElement.id = 'preview-modal-styles';
-    styleElement.innerHTML = previewModalStyles;
-    document.head.appendChild(styleElement);
-}
-
-// Initialiser le gestionnaire d'upload
-let fileUploader;
-document.addEventListener('DOMContentLoaded', function() {
-    fileUploader = new FileUploadManager();
-});
-
-// Gérer la fermeture des modals avec Escape
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') {
-        const modal = document.querySelector('.file-preview-modal');
-        if (modal) {
-            modal.remove();
-        }
-    }
-});
+        });
     </script>
 </body>
 </html>
