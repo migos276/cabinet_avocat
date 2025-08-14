@@ -55,12 +55,12 @@ class Database {
 
         CREATE TABLE IF NOT EXISTS team_members (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name VARCHAR(255) NOT NULL,
-            position VARCHAR(255) NOT NULL,
+            name TEXT NOT NULL,
+            position TEXT NOT NULL,
             description TEXT NOT NULL,
-            image_url VARCHAR(500),
-            order_position INTEGER DEFAULT 0,
+            image_url TEXT NOT NULL,
             is_active INTEGER DEFAULT 1,
+            order_position INTEGER DEFAULT 0,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
         );
@@ -287,19 +287,19 @@ class Database {
                 'name' => 'Maître Jean Dupont',
                 'position' => 'Avocat Associé - Droit des Affaires',
                 'description' => 'Spécialisé en droit des sociétés et fusions-acquisitions, Maître Dupont accompagne les entreprises dans leurs projets de développement depuis plus de 15 ans.',
-                'image_url' => 'https://images.pexels.com/photos/2182970/pexels-photo-2182970.jpeg?auto=compress&cs=tinysrgb&w=400',
+                'image_url' => 'https://www.startpage.com/av/proxy-image?piurl=https%3A%2F%2Ftse1.mm.bing.net%2Fth%2Fid%2FOIP.-TP4HAOrEqyzCIs1445m_AHaGP%3Fr%3D0%26pid%3DApi&sp=1755176715Tc341f8588c5dd15639858351feee0b6d86788ed3165bda54ea22ba2f0351162a',
                 'order_position' => 1
             ],
             [
                 'name' => 'Maître Marie Martin',
                 'position' => 'Avocate Spécialisée - Droit de la Famille',
                 'description' => 'Experte en droit matrimonial et protection de l\'enfance, Maître Martin défend avec passion les intérêts de ses clients dans les situations familiales complexes.',
-                'image_url' => 'https://images.pexels.com/photos/3760263/pexels-photo-3760263.jpeg?auto=compress&cs=tinysrgb&w=400',
+                'image_url' => 'https://www.startpage.com/av/proxy-image?piurl=https%3A%2F%2Ftse4.mm.bing.net%2Fth%2Fid%2FOIP.urLU6Si-1Zy58duQh7PNmAAAAA%3Fr%3D0%26pid%3DApi&sp=1755176715T4e8fe4dce8e822ab3885eba5d3768dd4a85f6d828c58fe96bfaecca44fa020e4',
                 'order_position' => 2
             ]
         ];
         
-        $sql = "INSERT INTO team_members (name, position, description, image_url, order_position) VALUES (?, ?, ?, ?, ?)";
+        $sql = "INSERT INTO team_members (name, position, description, image_url, is_active, order_position) VALUES (?, ?, ?, ?, 1, ?)";
         $stmt = $this->connection->prepare($sql);
         
         foreach ($defaultTeam as $member) {

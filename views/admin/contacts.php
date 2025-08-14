@@ -409,7 +409,7 @@
         <!-- Sidebar -->
         <aside class="sidebar">
             <div class="sidebar-header">
-                <h2><?php echo SITE_NAME; ?></h2>
+                <h2><?php echo defined('SITE_NAME') ? SITE_NAME : 'Cabinet Excellence'; ?></h2>
                 <p>Administration</p>
             </div>
             <ul class="sidebar-nav">
@@ -472,7 +472,7 @@
                         
                         <div class="filter-group">
                             <label class="filter-label">Recherche</label>
-                            <input type="text" name="search" class="filter-input" placeholder="Nom, email, sujet..." value="<?php echo $_GET['search'] ?? ''; ?>" onchange="applyFilters()">
+                            <input type="text" name="search" class="filter-input" placeholder="Nom, email, sujet..." value="<?php echo $_GET['search'] ?? ''; ?>" oninput="applyFilters()">
                         </div>
                         
                         <div class="filter-group">
@@ -492,7 +492,7 @@
                 <h2 class="section-title">
                     <i class="fas fa-envelope"></i>
                     Liste des messages
-                    <span style="margin-left: auto; font-size: 0.9rem; color: #6b7280;">
+                    <span style="margin-left: auto; font-size: 0.9rem; color: #6b7280;" id="message-count">
                         <?php echo count($contacts); ?> message(s)
                     </span>
                 </h2>
@@ -511,7 +511,7 @@
                     </div>
                 <?php else: ?>
                     <div style="overflow-x: auto;">
-                        <table class="messages-table">
+                        <table class="messages-table" id="messages-table">
                             <thead>
                                 <tr>
                                     <th>Expéditeur</th>
@@ -522,9 +522,16 @@
                                     <th>Actions</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody id="messages-tbody">
                                 <?php foreach ($contacts as $contact): ?>
-                                    <tr class="message-row" onclick="viewMessage(<?php echo $contact['id']; ?>)">
+                                    <tr class="message-row" 
+                                        data-name="<?php echo htmlspecialchars(strtolower($contact['name'])); ?>" 
+                                        data-email="<?php echo htmlspecialchars(strtolower($contact['email'])); ?>" 
+                                        data-subject="<?php echo htmlspecialchars(strtolower($contact['subject'] ?? '')); ?>" 
+                                        data-message="<?php echo htmlspecialchars(strtolower($contact['message'])); ?>" 
+                                        data-date="<?php echo date('Y-m-d', strtotime($contact['created_at'])); ?>" 
+                                        data-status="<?php echo htmlspecialchars($contact['status']); ?>" 
+                                        data-timestamp="<?php echo strtotime($contact['created_at']); ?>">
                                         <td>
                                             <div class="message-name"><?php echo htmlspecialchars($contact['name']); ?></div>
                                             <div class="message-email"><?php echo htmlspecialchars($contact['email']); ?></div>
@@ -543,7 +550,6 @@
                                         <td>
                                             <div class="files-indicator">
                                                 <?php 
-                                                // Compter les fichiers pour ce contact
                                                 $fileStmt = $this->db->prepare("SELECT COUNT(*) FROM contact_files WHERE contact_id = ?");
                                                 $fileStmt->execute([$contact['id']]);
                                                 $fileCount = $fileStmt->fetchColumn();
@@ -580,12 +586,90 @@
     </div>
 
     <script>
+        // Store original table rows for filtering
+        const originalRows = Array.from(document.querySelectorAll('#messages-tbody tr'));
+        
         function applyFilters() {
-            document.getElementById('filtersForm').submit();
+            const status = document.querySelector('select[name="status"]').value;
+            const date = document.querySelector('input[name="date"]').value;
+            const sort = document.querySelector('select[name="sort"]').value;
+            const search = document.querySelector('input[name="search"]').value.toLowerCase();
+
+            // Filter rows
+            let filteredRows = originalRows.filter(row => {
+                const rowStatus = row.dataset.status;
+                const rowDate = row.dataset.date;
+                const rowName = row.dataset.name;
+                const rowEmail = row.dataset.email;
+                const rowSubject = row.dataset.subject;
+                const rowMessage = row.dataset.message;
+
+                // Status filter
+                if (status && rowStatus !== status) {
+                    return false;
+                }
+
+                // Date filter
+                if (date && rowDate !== date) {
+                    return false;
+                }
+
+                // Search filter
+                if (search && !(
+                    rowName.includes(search) ||
+                    rowEmail.includes(search) ||
+                    rowSubject.includes(search) ||
+                    rowMessage.includes(search)
+                )) {
+                    return false;
+                }
+
+                return true;
+            });
+
+            // Sort rows
+            filteredRows.sort((a, b) => {
+                if (sort === 'newest') {
+                    return b.dataset.timestamp - a.dataset.timestamp;
+                } else if (sort === 'oldest') {
+                    return a.dataset.timestamp - b.dataset.timestamp;
+                } else if (sort === 'name') {
+                    return a.dataset.name.localeCompare(b.dataset.name);
+                }
+                return 0;
+            });
+
+            // Update table
+            const tbody = document.getElementById('messages-tbody');
+            tbody.innerHTML = '';
+            filteredRows.forEach(row => tbody.appendChild(row));
+
+            // Update message count
+            document.getElementById('message-count').textContent = `${filteredRows.length} message(s)`;
+
+            // Show/hide empty state
+            const emptyState = document.querySelector('.empty-state');
+            if (filteredRows.length === 0 && !emptyState) {
+                const messagesSection = document.querySelector('.messages-section');
+                messagesSection.innerHTML += `
+                    <div class="empty-state">
+                        <i class="fas fa-inbox"></i>
+                        <h3>Aucun message</h3>
+                        <p>Il n'y a pas de messages correspondant à vos critères.</p>
+                    </div>
+                `;
+            } else if (filteredRows.length > 0 && emptyState) {
+                emptyState.remove();
+            }
         }
 
         function resetFilters() {
-            window.location.href = '/admin/contacts';
+            const form = document.getElementById('filtersForm');
+            form.querySelector('select[name="status"]').value = '';
+            form.querySelector('input[name="date"]').value = '';
+            form.querySelector('select[name="sort"]').value = 'newest';
+            form.querySelector('input[name="search"]').value = '';
+            applyFilters();
         }
 
         function viewMessage(id) {
@@ -596,6 +680,7 @@
             if (confirm('Êtes-vous sûr de vouloir supprimer ce message ?')) {
                 const form = document.createElement('form');
                 form.method = 'POST';
+                form.action = '/admin/contacts';
                 form.innerHTML = `
                     <input type="hidden" name="action" value="delete">
                     <input type="hidden" name="id" value="${id}">
@@ -605,16 +690,18 @@
             }
         }
 
-        // Auto-refresh pour les nouveaux messages
+        // Auto-refresh for new messages
         setInterval(function() {
             const newBadges = document.querySelectorAll('.status-new');
-            if (newBadges.length > 0) {
-                // Faire clignoter les nouveaux messages
-                newBadges.forEach(badge => {
-                    badge.style.animation = 'pulse 1s ease-in-out';
-                });
-            }
-        }, 30000); // Toutes les 30 secondes
+            newBadges.forEach(badge => {
+                badge.style.animation = 'pulse 1s ease-in-out';
+            });
+        }, 30000); // Every 30 seconds
+
+        // Initialize filters on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            applyFilters();
+        });
     </script>
 </body>
 </html>

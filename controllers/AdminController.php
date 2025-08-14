@@ -97,6 +97,31 @@ class AdminController {
                 ");
                 $stmt->execute([$name, $position, $description, $image_url, $id]);
                 $success = 'Membre de l\'équipe mis à jour avec succès!';
+            } elseif ($action === 'add_team') {
+                $name = $_POST['name'] ?? '';
+                $position = $_POST['position'] ?? '';
+                $description = $_POST['description'] ?? '';
+                $image_url = $_POST['image_url'] ?? '';
+                
+                if ($name && $position && $description && $image_url) {
+                    $stmt = $this->db->prepare("
+                        INSERT INTO team_members (name, position, description, image_url, is_active, order_position)
+                        VALUES (?, ?, ?, ?, 1, (SELECT COALESCE(MAX(order_position), 0) + 1 FROM team_members))
+                    ");
+                    $stmt->execute([$name, $position, $description, $image_url]);
+                    $success = 'Membre de l\'équipe ajouté avec succès!';
+                } else {
+                    $success = 'Erreur : Tous les champs sont requis pour ajouter un membre.';
+                }
+            } elseif ($action === 'delete_team') {
+                $id = $_POST['team_id'] ?? '';
+                if ($id) {
+                    $stmt = $this->db->prepare("DELETE FROM team_members WHERE id = ?");
+                    $stmt->execute([$id]);
+                    $success = 'Membre de l\'équipe supprimé avec succès!';
+                } else {
+                    $success = 'Erreur : ID du membre manquant.';
+                }
             }
         }
         

@@ -25,7 +25,6 @@
             padding: 2rem;
         }
 
-        /* Header */
         .page-header {
             background: white;
             border-radius: 15px;
@@ -92,14 +91,12 @@
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
         }
 
-        /* Main Content Grid */
         .content-grid {
             display: grid;
             grid-template-columns: 2fr 1fr;
             gap: 2rem;
         }
 
-        /* Message Details */
         .message-card {
             background: white;
             border-radius: 15px;
@@ -193,7 +190,6 @@
             color: #065f46;
         }
 
-        /* Message Content */
         .message-content {
             background: white;
             border-radius: 15px;
@@ -220,7 +216,6 @@
             border-left: 4px solid #3b82f6;
         }
 
-        /* Files Section */
         .files-section {
             background: white;
             border-radius: 15px;
@@ -316,23 +311,109 @@
             transform: scale(1.1);
         }
 
-        /* PDF Viewer */
-        .pdf-viewer {
+        .pdf-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 1000;
+            padding: 1rem;
+        }
+
+        .pdf-modal-content {
+            width: 100%;
+            height: 100%;
             background: white;
             border-radius: 15px;
-            padding: 1rem;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
-            margin-top: 1rem;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .pdf-modal-header {
+            padding: 1rem 1.5rem;
+            background: #f8fafc;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .pdf-modal-header h3 {
+            margin: 0;
+            color: #1f2937;
+            font-size: 1.2rem;
+        }
+
+        .pdf-modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: #6b7280;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+
+        .pdf-modal-close:hover {
+            background: #ef4444;
+            color: white;
+        }
+
+        .pdf-modal-body {
+            flex: 1;
+            overflow: auto;
         }
 
         .pdf-embed {
             width: 100%;
-            height: 600px;
+            height: 100%;
             border: none;
+        }
+
+        .image-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 1000;
+            padding: 1rem;
+            flex-direction: column;
+        }
+
+        .image-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .image-modal-header h3 {
+            color: white;
+            margin: 0;
+            font-size: 1.2rem;
+        }
+
+        .image-modal-body {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .image-modal-body img {
+            max-width: 100%;
+            max-height: 90vh;
             border-radius: 10px;
         }
 
-        /* Actions Sidebar */
         .actions-sidebar {
             display: flex;
             flex-direction: column;
@@ -361,7 +442,6 @@
             gap: 0.5rem;
         }
 
-        /* Contact Info Card */
         .contact-info {
             background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
             border: 2px solid #bfdbfe;
@@ -389,7 +469,6 @@
             font-weight: 500;
         }
 
-        /* Empty State */
         .empty-files {
             text-align: center;
             padding: 2rem;
@@ -402,7 +481,6 @@
             opacity: 0.3;
         }
 
-        /* Responsive */
         @media (max-width: 768px) {
             .container {
                 padding: 1rem;
@@ -430,12 +508,19 @@
             .header-actions {
                 flex-wrap: wrap;
             }
+
+            .pdf-modal, .image-modal {
+                padding: 0.5rem;
+            }
+
+            .pdf-modal-content, .image-modal {
+                border-radius: 8px;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- Page Header -->
         <div class="page-header">
             <div class="header-info">
                 <h1>Message de <?php echo htmlspecialchars($contact['name']); ?></h1>
@@ -456,9 +541,7 @@
         </div>
 
         <div class="content-grid">
-            <!-- Main Content -->
             <div class="main-content">
-                <!-- Message Header -->
                 <div class="message-card">
                     <div class="message-header">
                         <div class="sender-info">
@@ -501,7 +584,6 @@
                     </div>
                 </div>
 
-                <!-- Message Content -->
                 <div class="message-content">
                     <h2 class="content-title">
                         <i class="fas fa-comment-alt"></i>
@@ -512,7 +594,6 @@
                     </div>
                 </div>
 
-                <!-- Files Section -->
                 <?php if (!empty($files)): ?>
                     <div class="files-section">
                         <h2 class="content-title">
@@ -551,18 +632,6 @@
                             <?php endforeach; ?>
                         </div>
                     </div>
-
-                    <!-- PDF Viewer (hidden by default) -->
-                    <div class="pdf-viewer" id="pdfViewer" style="display: none;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; padding: 0 1rem;">
-                            <h3 id="pdfTitle" style="color: #1f2937; margin: 0;"></h3>
-                            <button class="btn btn-secondary" onclick="closePDFViewer()">
-                                <i class="fas fa-times"></i>
-                                Fermer
-                            </button>
-                        </div>
-                        <iframe id="pdfFrame" class="pdf-embed" src=""></iframe>
-                    </div>
                 <?php else: ?>
                     <div class="files-section">
                         <h2 class="content-title">
@@ -578,9 +647,7 @@
                 <?php endif; ?>
             </div>
 
-            <!-- Sidebar -->
             <div class="actions-sidebar">
-                <!-- Contact Info -->
                 <div class="action-card contact-info">
                     <h3>
                         <i class="fas fa-user"></i>
@@ -606,7 +673,6 @@
                     </div>
                 </div>
 
-                <!-- Actions -->
                 <div class="action-card">
                     <h3>
                         <i class="fas fa-cog"></i>
@@ -635,7 +701,6 @@
                     </div>
                 </div>
 
-                <!-- Statistics -->
                 <div class="action-card">
                     <h3>
                         <i class="fas fa-chart-bar"></i>
@@ -662,38 +727,49 @@
         </div>
     </div>
 
-    <!-- Modal pour l'aperçu d'image -->
-    <div id="imageModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; padding: 2rem;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-            <h3 id="imageTitle" style="color: white; margin: 0;"></h3>
+    <div id="pdfModal" class="pdf-modal">
+        <div class="pdf-modal-content">
+            <div class="pdf-modal-header">
+                <h3 id="pdfTitle"></h3>
+                <button class="pdf-modal-close" onclick="closePDFModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="pdf-modal-body">
+                <embed id="pdfEmbed" class="pdf-embed" src="" type="application/pdf">
+            </div>
+        </div>
+    </div>
+
+    <div id="imageModal" class="image-modal">
+        <div class="image-modal-header">
+            <h3 id="imageTitle"></h3>
             <button class="btn btn-secondary" onclick="closeImageModal()">
                 <i class="fas fa-times"></i>
                 Fermer
             </button>
         </div>
-        <div style="text-align: center;">
-            <img id="modalImage" style="max-width: 100%; max-height: 80vh; border-radius: 10px;" src="" alt="">
+        <div class="image-modal-body">
+            <img id="modalImage" src="" alt="">
         </div>
     </div>
 
     <script>
-        // Fonctions pour la gestion des fichiers
         function viewPDF(fileId, fileName) {
             document.getElementById('pdfTitle').textContent = fileName;
-            document.getElementById('pdfFrame').src = `/serve_file.php?id=${fileId}&view=true`;
-            document.getElementById('pdfViewer').style.display = 'block';
-            document.getElementById('pdfViewer').scrollIntoView({ behavior: 'smooth' });
+            document.getElementById('pdfEmbed').src = `/serve_file.php?id=${fileId}&view=true#toolbar=1`;
+            document.getElementById('pdfModal').style.display = 'block';
         }
 
-        function closePDFViewer() {
-            document.getElementById('pdfViewer').style.display = 'none';
-            document.getElementById('pdfFrame').src = '';
+        function closePDFModal() {
+            document.getElementById('pdfModal').style.display = 'none';
+            document.getElementById('pdfEmbed').src = '';
         }
 
         function viewImage(fileId, fileName) {
             document.getElementById('imageTitle').textContent = fileName;
             document.getElementById('modalImage').src = `/serve_file.php?id=${fileId}&view=true`;
-            document.getElementById('imageModal').style.display = 'block';
+            document.getElementById('imageModal').style.display = 'flex';
         }
 
         function closeImageModal() {
@@ -710,7 +786,6 @@
             document.body.removeChild(link);
         }
 
-        // Fonctions pour la gestion des messages
         function markAsRead(id) {
             updateMessageStatus(id, 'read');
         }
@@ -745,41 +820,27 @@
             }
         }
 
-        // Fermer les modals en cliquant à l'extérieur
+        document.getElementById('pdfModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closePDFModal();
+            }
+        });
+
         document.getElementById('imageModal').addEventListener('click', function(e) {
             if (e.target === this) {
                 closeImageModal();
             }
         });
 
-        // Raccourcis clavier
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
+                closePDFModal();
                 closeImageModal();
-                closePDFViewer();
             }
         });
-
-        // Auto-refresh du statut
-        function checkForUpdates() {
-            fetch(`/admin/api/message-status/${<?php echo $contact['id']; ?>}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status !== '<?php echo $contact['status']; ?>') {
-                        location.reload();
-                    }
-                })
-                .catch(() => {
-                    // Ignore les erreurs de réseau
-                });
-        }
-
-        // Vérifier les mises à jour toutes les 30 secondes
-        setInterval(checkForUpdates, 30000);
     </script>
 
     <?php
-    // Méthodes helper pour l'affichage des fichiers
     function getFileIcon($fileType) {
         switch (strtolower($fileType)) {
             case 'pdf':

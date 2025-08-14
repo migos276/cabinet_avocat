@@ -10,6 +10,7 @@
 
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
 
     <style>
         /* Variables CSS pour la cohérence */
@@ -1193,6 +1194,168 @@
         .mb-8 { margin-bottom: 2rem; }
         .max-w-4xl { max-width: 56rem; }
         .mx-auto { margin-left: auto; margin-right: auto; }
+    /* Team Section Horizontal Scroll */
+.team-container {
+    position: relative;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 3rem;
+    display: flex;
+    align-items: center;
+}
+
+.team-grid {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: var(--secondary-blue) var(--gray-100);
+    gap: 2rem;
+    padding: 1rem 0;
+}
+
+.team-grid::-webkit-scrollbar {
+    height: 8px;
+}
+
+.team-grid::-webkit-scrollbar-track {
+    background: var(--gray-100);
+    border-radius: 4px;
+}
+
+.team-grid::-webkit-scrollbar-thumb {
+    background: var(--secondary-blue);
+    border-radius: 4px;
+}
+
+.team-grid::-webkit-scrollbar-thumb:hover {
+    background: var(--primary-blue);
+}
+
+.team-card {
+    flex: 0 0 300px;
+    background: white;
+    border-radius: 20px;
+    padding: 2.5rem;
+    text-align: center;
+    box-shadow: 0 5px 15px var(--shadow-light);
+    transition: all 0.3s ease;
+    scroll-snap-align: center;
+    min-width: 300px;
+}
+
+.team-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 15px 30px var(--shadow-medium);
+}
+
+.team-image {
+    width: 100%;
+    height: 250px;
+    object-fit: cover;
+    border-radius: 15px;
+    margin-bottom: 1.5rem;
+}
+
+.team-position {
+    color: var(--secondary-blue);
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.team-description {
+    color: var(--text-light);
+    line-height: 1.6;
+}
+
+.team-nav-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: var(--white);
+    border: 2px solid var(--border-color);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px var(--shadow-light);
+    z-index: 10;
+}
+
+.team-nav-prev {
+    left: 0;
+}
+
+.team-nav-next {
+    right: 0;
+}
+
+.team-nav-btn:hover {
+    background: var(--secondary-blue);
+    color: var(--white);
+    border-color: var(--secondary-blue);
+    transform: translateY(-50%) scale(1.1);
+}
+
+.team-nav-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.team-nav-btn i {
+    font-size: 1.2rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .team-container {
+        padding: 0 2rem;
+    }
+
+    .team-grid {
+        gap: 1.5rem;
+    }
+
+    .team-card {
+        flex: 0 0 280px;
+        min-width: 280px;
+    }
+
+    .team-nav-btn {
+        width: 35px;
+        height: 35px;
+    }
+
+    .team-nav-btn i {
+        font-size: 1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .team-container {
+        padding: 0 1rem;
+    }
+
+    .team-grid {
+        gap: 1rem;
+    }
+
+    .team-card {
+        flex: 0 0 260px;
+        min-width: 260px;
+        padding: 1.5rem;
+    }
+
+    .team-nav-btn {
+        width: 30px;
+        height: 30px;
+    }
+}
     </style>
 </head>
 <body>
@@ -1422,32 +1585,38 @@
         </div>
     </section>
 
-    <!-- Team Section -->
     <section id="team" class="section" style="background: var(--gradient-bg);">
-        <div class="container">
-            <div class="section-title">
-                <span class="badge mb-4">Notre équipe</span>
-                <h2><?php echo htmlspecialchars($content['team']['title'] ?? 'Des Experts à Vos Côtés'); ?></h2>
-                <p class="lead">
-                    <?php echo htmlspecialchars($content['team']['subtitle'] ?? 'Des avocats expérimentés et passionnés, reconnus pour leur expertise et leur engagement'); ?>
-                </p>
-            </div>
+    <div class="container">
+        <div class="section-title">
+            <span class="badge mb-4">Notre équipe</span>
+            <h2><?php echo htmlspecialchars($content['team']['title'] ?? 'Des Experts à Vos Côtés'); ?></h2>
+            <p class="lead">
+                <?php echo htmlspecialchars($content['team']['subtitle'] ?? 'Des avocats expérimentés et passionnés, reconnus pour leur expertise et leur engagement'); ?>
+            </p>
+        </div>
 
-            <div class="services-grid">
+        <div class="team-container">
+            <button class="team-nav-btn team-nav-prev" aria-label="Précédent">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+            <div class="team-grid">
                 <?php foreach ($team as $member): ?>
-                <div class="service-card">
+                <div class="team-card">
                     <img src="<?php echo htmlspecialchars($member['image_url']); ?>"
                          alt="<?php echo htmlspecialchars($member['name']); ?>"
-                         style="width: 100%; height: 250px; object-fit: cover; border-radius: 15px; margin-bottom: 1.5rem;">
+                         class="team-image">
                     <h4><?php echo htmlspecialchars($member['name']); ?></h4>
-                    <p style="color: var(--secondary-blue); font-weight: 600; margin-bottom: 0.5rem;"><?php echo htmlspecialchars($member['position']); ?></p>
-                    <p><?php echo htmlspecialchars($member['description']); ?></p>
+                    <p class="team-position"><?php echo htmlspecialchars($member['position']); ?></p>
+                    <p class="team-description"><?php echo htmlspecialchars($member['description']); ?></p>
                 </div>
                 <?php endforeach; ?>
             </div>
+            <button class="team-nav-btn team-nav-next" aria-label="Suivant">
+                <i class="fas fa-chevron-right"></i>
+            </button>
         </div>
-    </section>
-
+    </div>
+</section>
     <!-- Contact Section -->
     <section id="contact" class="section contact-section">
         <div class="container">
@@ -1607,6 +1776,64 @@
     </button>
 
     <script>
+        function initializeTeamScroll() {
+    const teamGrid = document.querySelector('.team-grid');
+    const prevBtn = document.querySelector('.team-nav-prev');
+    const nextBtn = document.querySelector('.team-nav-next');
+
+    if (!teamGrid || !prevBtn || !nextBtn) return;
+
+    function updateButtonState() {
+        const scrollLeft = teamGrid.scrollLeft;
+        const maxScroll = teamGrid.scrollWidth - teamGrid.clientWidth;
+
+        prevBtn.disabled = scrollLeft <= 0;
+        nextBtn.disabled = scrollLeft >= maxScroll - 1;
+    }
+
+    prevBtn.addEventListener('click', () => {
+        teamGrid.scrollBy({
+            left: -320,
+            behavior: 'smooth'
+        });
+    });
+
+    nextBtn.addEventListener('click', () => {
+        teamGrid.scrollBy({
+            left: 320,
+            behavior: 'smooth'
+        });
+    });
+
+    teamGrid.addEventListener('scroll', updateButtonState);
+    window.addEventListener('resize', updateButtonState);
+    updateButtonState();
+
+    // Gestion du défilement tactile
+    let isDragging = false;
+    let startX, scrollLeft;
+
+    teamGrid.addEventListener('touchstart', (e) => {
+        isDragging = true;
+        startX = e.touches[0].pageX - teamGrid.offsetLeft;
+        scrollLeft = teamGrid.scrollLeft;
+    });
+
+    teamGrid.addEventListener('touchend', () => {
+        isDragging = false;
+    });
+
+    teamGrid.addEventListener('touchmove', (e) => {
+        if (!isDragging) return;
+        e.preventDefault();
+        const x = e.touches[0].pageX - teamGrid.offsetLeft;
+        const walk = (x - startX) * 2;
+        teamGrid.scrollLeft = scrollLeft - walk;
+    });
+}
+
+// Initialisation au chargement de la page
+document.addEventListener('DOMContentLoaded', initializeTeamScroll);
         // Mobile Menu Toggle
         function toggleMobileMenu() {
             const mobileMenu = document.getElementById('mobileMenu');

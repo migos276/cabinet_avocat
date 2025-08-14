@@ -363,7 +363,7 @@ class HomeController {
                 'name' => 'Maître Jean Dupont',
                 'position' => 'Avocat Associé - Droit des Affaires',
                 'description' => 'Spécialisé en droit des sociétés et fusions-acquisitions, Maître Dupont accompagne les entreprises dans leurs projets de développement depuis plus de 15 ans.',
-                'image_url' => 'https://images.pexels.com/photos/2182970/pexels-photo-2182970.jpeg?auto=compress&cs=tinysrgb&w=400',
+                'image_url' => 'https://www.startpage.com/av/proxy-image?piurl=https%3A%2F%2Ftse1.mm.bing.net%2Fth%2Fid%2FOIP.-TP4HAOrEqyzCIs1445m_AHaGP%3Fr%3D0%26pid%3DApi&sp=1755184646T689d9a97a990ea0bf884ed11ae905d18aaa9e3d7783687850f6a8c6a202d9805',
                 'order_position' => 1,
                 'is_active' => 1
             ],
@@ -372,7 +372,7 @@ class HomeController {
                 'name' => 'Maître Marie Martin',
                 'position' => 'Avocate Spécialisée - Droit de la Famille',
                 'description' => 'Experte en droit matrimonial et protection de l\'enfance, Maître Martin défend avec passion les intérêts de ses clients dans les situations familiales complexes.',
-                'image_url' => 'https://images.pexels.com/photos/3760263/pexels-photo-3760263.jpeg?auto=compress&cs=tinysrgb&w=400',
+                'image_url' => 'https://www.startpage.com/av/proxy-image?piurl=https%3A%2F%2Ftse2.mm.bing.net%2Fth%2Fid%2FOIP.dbpEWd9jx6p3L5YXCdjsDwHaE8%3Fr%3D0%26pid%3DApi&sp=1755184646T308a7243dd6a95a511259cc2fd26e7e85097d04396fe874127c48dd6ad8d02cd',
                 'order_position' => 2,
                 'is_active' => 1
             ]

@@ -242,6 +242,11 @@
             color: white;
         }
 
+        .btn-danger {
+            background: linear-gradient(135deg, #ef4444, #b91c1c);
+            color: white;
+        }
+
         .btn:hover {
             transform: translateY(-2px);
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
@@ -641,6 +646,40 @@
 
             <!-- Team Tab -->
             <div id="team" class="tab-content">
+                <!-- Add New Team Member -->
+                <div class="form-section" style="margin-bottom: 2rem;">
+                    <h3 class="section-title">
+                        <i class="fas fa-user-plus"></i>
+                        Ajouter un nouveau membre
+                    </h3>
+                    <form method="POST">
+                        <input type="hidden" name="action" value="add_team">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label class="form-label">Nom</label>
+                                <input type="text" name="name" class="form-control" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Poste</label>
+                                <input type="text" name="position" class="form-control" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Description</label>
+                                <textarea name="description" class="form-control textarea-lg" required></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">URL de l'image</label>
+                                <input type="url" name="image_url" class="form-control" required>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-plus"></i>
+                            Ajouter le membre
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Existing Team Members -->
                 <div class="team-grid">
                     <?php foreach ($team as $member): ?>
                         <div class="team-card">
@@ -648,6 +687,14 @@
                                 <input type="hidden" name="action" value="update_team">
                                 <input type="hidden" name="team_id" value="<?php echo $member['id']; ?>">
                                 
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                                    <h4><?php echo htmlspecialchars($member['name']); ?></h4>
+                                    <button type="submit" name="action" value="delete_team" class="btn btn-danger" onclick="return confirm('Voulez-vous vraiment supprimer ce membre ?');">
+                                        <i class="fas fa-trash"></i>
+                                        Supprimer
+                                    </button>
+                                </div>
+
                                 <img src="<?php echo htmlspecialchars($member['image_url']); ?>" alt="<?php echo htmlspecialchars($member['name']); ?>" class="team-image">
 
                                 <div class="form-group">
