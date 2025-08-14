@@ -216,26 +216,24 @@ class Database {
         $stmt = $this->connection->prepare($sql);
         
         $defaultDetailedContent = '
-        <h3>Notre approche</h3>
-        <p>Nous privilégions une approche personnalisée et sur-mesure pour chaque client. Notre méthode comprend :</p>
-        <ul>
-            <li>Analyse approfondie de votre situation</li>
-            <li>Conseil juridique adapté à vos besoins</li>
-            <li>Accompagnement tout au long de la procédure</li>
-            <li>Suivi post-dossier et conseils préventifs</li>
-        </ul>
+        Notre approche
+        Nous privilégions une approche personnalisée et sur-mesure pour chaque client. Notre méthode comprend
+        
+            Analyse approfondie de votre situation
+            Conseil juridique adapté à vos besoins
+            Accompagnement tout au long de la procédure
+            Suivi post-dossier et conseils préventifs
 
-        <h3>Pourquoi nous choisir ?</h3>
-        <p>Fort de plus de 20 ans d\'expérience, notre cabinet vous garantit :</p>
-        <ul>
-            <li>Une expertise reconnue dans ce domaine</li>
-            <li>Un accompagnement personnalisé</li>
-            <li>Une disponibilité et une réactivité optimales</li>
-            <li>Des tarifs transparents et compétitifs</li>
-        </ul>
+        Pourquoi nous choisir ?
+        Fort de plus de 20 ans d\'expérience, notre cabinet vous garantit
+            Une expertise reconnue dans ce domaine
+            Un accompagnement personnalisé
+            Une disponibilité et une réactivité optimales
+            Des tarifs transparents et compétitifs
+        
 
-        <h3>Première consultation</h3>
-        <p>Nous vous proposons une première consultation gratuite pour évaluer votre situation et vous présenter les différentes options qui s\'offrent à vous.</p>
+        Première consultation
+        Nous vous proposons une première consultation gratuite pour évaluer votre situation et vous présenter les différentes options qui s\'offrent à vous.
         ';
         
         foreach ($defaultServices as $service) {
