@@ -34,7 +34,6 @@ class AdminController {
     public function dashboard() {
         $this->requireAuth();
         
-        // Get statistics
         $stats = [
             'contacts' => $this->db->query("SELECT COUNT(*) FROM contacts")->fetchColumn(),
             'new_contacts' => $this->db->query("SELECT COUNT(*) FROM contacts WHERE status = 'new'")->fetchColumn(),
@@ -42,7 +41,6 @@ class AdminController {
             'team_members' => $this->db->query("SELECT COUNT(*) FROM team_members WHERE is_active = 1")->fetchColumn()
         ];
         
-        // Get recent contacts
         $recent_contacts = $this->db->query("
             SELECT * FROM contacts 
             ORDER BY created_at DESC 
@@ -75,47 +73,64 @@ class AdminController {
                 $description = $_POST['description'];
                 $icon = $_POST['icon'];
                 $color = $_POST['color'];
+                $detailed_content = $_POST['detailed_content'];
                 
                 $stmt = $this->db->prepare("
                     UPDATE services 
-                    SET title = ?, description = ?, icon = ?, color = ?, updated_at = datetime('now')
+                    SET title = ?, description = ?, icon = ?, color = ?, detailed_content = ?, updated_at = datetime('now')
                     WHERE id = ?
                 ");
-                $stmt->execute([$title, $description, $icon, $color, $id]);
+                $stmt->execute([$title, $description, $icon, $color, $detailed_content, $id]);
                 $success = 'Service mis à jour avec succès!';
             } elseif ($action === 'update_team') {
                 $id = $_POST['team_id'];
                 $name = $_POST['name'];
                 $position = $_POST['position'];
                 $description = $_POST['description'];
-                $image_url = $_POST['image_url'];
                 
-                $stmt = $this->db->prepare("
-                    UPDATE team_members 
-                    SET name = ?, position = ?, description = ?, image_url = ?, updated_at = datetime('now')
-                    WHERE id = ?
-                ");
-                $stmt->execute([$name, $position, $description, $image_url, $id]);
-                $success = 'Membre de l\'équipe mis à jour avec succès!';
+                $image_path = $this->handleImageUpload($_FILES['image'], $id);
+                if (is_string($image_path) && strpos($image_path, 'Erreur') === 0) {
+                    $success = $image_path;
+                } else {
+                    $stmt = $this->db->prepare("
+                        UPDATE team_members 
+                        SET name = ?, position = ?, description = ?, image_path = ?, updated_at = datetime('now')
+                        WHERE id = ?
+                    ");
+                    $stmt->execute([$name, $position, $description, $image_path, $id]);
+                    $success = 'Membre de l\'équipe mis à jour avec succès!';
+                }
             } elseif ($action === 'add_team') {
                 $name = $_POST['name'] ?? '';
                 $position = $_POST['position'] ?? '';
                 $description = $_POST['description'] ?? '';
-                $image_url = $_POST['image_url'] ?? '';
                 
-                if ($name && $position && $description && $image_url) {
-                    $stmt = $this->db->prepare("
-                        INSERT INTO team_members (name, position, description, image_url, is_active, order_position)
-                        VALUES (?, ?, ?, ?, 1, (SELECT COALESCE(MAX(order_position), 0) + 1 FROM team_members))
-                    ");
-                    $stmt->execute([$name, $position, $description, $image_url]);
-                    $success = 'Membre de l\'équipe ajouté avec succès!';
+                if ($name && $position && $description && isset($_FILES['image']) && $_FILES['image']['size'] > 0) {
+                    $image_path = $this->handleImageUpload($_FILES['image']);
+                    if (is_string($image_path) && strpos($image_path, 'Erreur') === 0) {
+                        $success = $image_path;
+                    } else {
+                        $stmt = $this->db->prepare("
+                            INSERT INTO team_members (name, position, description, image_path, is_active, order_position)
+                            VALUES (?, ?, ?, ?, 1, (SELECT COALESCE(MAX(order_position), 0) + 1 FROM team_members))
+                        ");
+                        $stmt->execute([$name, $position, $description, $image_path]);
+                        $success = 'Membre de l\'équipe ajouté avec succès!';
+                    }
                 } else {
-                    $success = 'Erreur : Tous les champs sont requis pour ajouter un membre.';
+                    $success = 'Erreur : Tous les champs, y compris l\'image, sont requis pour ajouter un membre.';
                 }
             } elseif ($action === 'delete_team') {
                 $id = $_POST['team_id'] ?? '';
                 if ($id) {
+                    // Supprimer l'image associée
+                    $stmt = $this->db->prepare("SELECT image_path FROM team_members WHERE id = ?");
+                    $stmt->execute([$id]);
+                    $image_path = $stmt->fetchColumn();
+                    if ($image_path && file_exists($_SERVER['DOCUMENT_ROOT'] . $image_path)) {
+                        unlink($_SERVER['DOCUMENT_ROOT'] . $image_path);
+                    }
+                    
                     $stmt = $this->db->prepare("DELETE FROM team_members WHERE id = ?");
                     $stmt->execute([$id]);
                     $success = 'Membre de l\'équipe supprimé avec succès!';
@@ -125,20 +140,65 @@ class AdminController {
             }
         }
         
-        // Get all content
         $stmt = $this->db->query("SELECT section, key_name, value FROM site_content ORDER BY section, key_name");
         $content = [];
         while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
             $content[$row['section']][$row['key_name']] = $row['value'];
         }
         
-        // Get services
         $services = $this->db->query("SELECT * FROM services ORDER BY order_position")->fetchAll(PDO::FETCH_ASSOC);
-        
-        // Get team members
         $team = $this->db->query("SELECT * FROM team_members ORDER BY order_position")->fetchAll(PDO::FETCH_ASSOC);
         
         include 'views/admin/content.php';
+    }
+    
+    private function handleImageUpload($file, $existing_id = null) {
+        if ($file['error'] === UPLOAD_ERR_NO_FILE) {
+            if ($existing_id) {
+                // Si mise à jour sans nouveau fichier, conserver l'image existante
+                $stmt = $this->db->prepare("SELECT image_path FROM team_members WHERE id = ?");
+                $stmt->execute([$existing_id]);
+                return $stmt->fetchColumn();
+            }
+            return 'Erreur : Aucun fichier sélectionné';
+        }
+        
+        $allowed_types = ['image/jpeg', 'image/png', 'image/gif'];
+        $max_size = 5 * 1024 * 1024; // 5MB
+        $upload_dir = $_SERVER['DOCUMENT_ROOT'] . '/public/uploads/team/';
+        
+        // Créer le dossier si nécessaire
+        if (!is_dir($upload_dir)) {
+            mkdir($upload_dir, 0755, true);
+        }
+        
+        if (!in_array($file['type'], $allowed_types)) {
+            return 'Erreur : Type de fichier non autorisé. Seuls JPG, PNG et GIF sont acceptés.';
+        }
+        
+        if ($file['size'] > $max_size) {
+            return 'Erreur : Le fichier est trop volumineux. Taille maximale : 5MB.';
+        }
+        
+        $extension = pathinfo($file['name'], PATHINFO_EXTENSION);
+        $filename = uniqid('team_') . '.' . $extension;
+        $destination = $upload_dir . $filename;
+        $relative_path = '/public/uploads/team/' . $filename;
+        
+        if (move_uploaded_file($file['tmp_name'], $destination)) {
+            // Supprimer l'ancienne image si mise à jour
+            if ($existing_id) {
+                $stmt = $this->db->prepare("SELECT image_path FROM team_members WHERE id = ?");
+                $stmt->execute([$existing_id]);
+                $old_image = $stmt->fetchColumn();
+                if ($old_image && file_exists($_SERVER['DOCUMENT_ROOT'] . $old_image)) {
+                    unlink($_SERVER['DOCUMENT_ROOT'] . $old_image);
+                }
+            }
+            return $relative_path;
+        }
+        
+        return 'Erreur : Échec de l\'upload du fichier.';
     }
     
     public function contacts() {
@@ -163,7 +223,6 @@ class AdminController {
             }
         }
         
-        // Get all contacts
         $contacts = $this->db->query("
             SELECT * FROM contacts 
             ORDER BY created_at DESC
@@ -175,7 +234,6 @@ class AdminController {
     public function messageDetail() {
         $this->requireAuth();
         
-        // Get message ID from URL
         $url = $_SERVER['REQUEST_URI'];
         $parts = explode('/', $url);
         $messageId = end($parts);
@@ -185,7 +243,6 @@ class AdminController {
             exit;
         }
         
-        // Get message details
         $stmt = $this->db->prepare("SELECT * FROM contacts WHERE id = ?");
         $stmt->execute([$messageId]);
         $contact = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -195,11 +252,9 @@ class AdminController {
             exit;
         }
         
-        // Marquer comme lu
         $updateStmt = $this->db->prepare("UPDATE contacts SET status = 'read', updated_at = datetime('now') WHERE id = ?");
         $updateStmt->execute([$messageId]);
         
-        // Récupérer les fichiers
         $filesStmt = $this->db->prepare("SELECT * FROM contact_files WHERE contact_id = ? ORDER BY uploaded_at");
         $filesStmt->execute([$messageId]);
         $files = $filesStmt->fetchAll(PDO::FETCH_ASSOC);
@@ -211,7 +266,6 @@ class AdminController {
         $this->requireAuth();
         
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            // Handle settings update
             $success = 'Paramètres mis à jour!';
         }
         

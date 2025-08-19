@@ -132,8 +132,16 @@ class HomeController {
     
     private function getTeam() {
         try {
-            $stmt = $this->db->query("SELECT * FROM team_members WHERE is_active = 1 ORDER BY order_position");
+            $stmt = $this->db->query("SELECT id, name, position, description, image_path, order_position, is_active FROM team_members WHERE is_active = 1 ORDER BY order_position");
             $team = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            // Vérifier les chemins d'image
+            foreach ($team as &$member) {
+                if (empty($member['image_path']) || !file_exists($_SERVER['DOCUMENT_ROOT'] . $member['image_path'])) {
+                    error_log("Image manquante pour {$member['name']}: {$member['image_path']}");
+                    $member['image_path'] = '/public/uploads/team/default_team_member.jpg';
+                }
+            }
             
             // Si vide, retourner une équipe par défaut
             if (empty($team)) {
@@ -206,19 +214,19 @@ class HomeController {
                 'name' => 'Maître Jean Dupont',
                 'position' => 'Avocat Associé - Droit des Affaires',
                 'description' => 'Spécialisé en droit des sociétés et fusions-acquisitions, Maître Dupont accompagne les entreprises dans leurs projets de développement depuis plus de 15 ans.',
-                'image_url' => 'https://images.pexels.com/photos/2182970/pexels-photo-2182970.jpeg?auto=compress&cs=tinysrgb&w=400',
+                'image_path' => '/public/uploads/team/default_team_member_1.jpg',
                 'order_position' => 1
             ],
             [
                 'name' => 'Maître Marie Martin',
                 'position' => 'Avocate Spécialisée - Droit de la Famille',
                 'description' => 'Experte en droit matrimonial et protection de l\'enfance, Maître Martin défend avec passion les intérêts de ses clients dans les situations familiales complexes.',
-                'image_url' => 'https://images.pexels.com/photos/3760263/pexels-photo-3760263.jpeg?auto=compress&cs=tinysrgb&w=400',
+                'image_path' => '/public/uploads/team/default_team_member_2.jpg',
                 'order_position' => 2
             ]
         ];
         
-        $sql = "INSERT INTO team_members (name, position, description, image_url, order_position, is_active) VALUES (?, ?, ?, ?, ?, 1)";
+        $sql = "INSERT INTO team_members (name, position, description, image_path, order_position, is_active) VALUES (?, ?, ?, ?, ?, 1)";
         $stmt = $this->db->prepare($sql);
         
         foreach ($defaultTeam as $member) {
@@ -226,7 +234,7 @@ class HomeController {
                 $member['name'],
                 $member['position'],
                 $member['description'],
-                $member['image_url'],
+                $member['image_path'],
                 $member['order_position']
             ]);
         }
@@ -363,7 +371,7 @@ class HomeController {
                 'name' => 'Maître Jean Dupont',
                 'position' => 'Avocat Associé - Droit des Affaires',
                 'description' => 'Spécialisé en droit des sociétés et fusions-acquisitions, Maître Dupont accompagne les entreprises dans leurs projets de développement depuis plus de 15 ans.',
-                'image_url' => 'https://www.startpage.com/av/proxy-image?piurl=https%3A%2F%2Ftse1.mm.bing.net%2Fth%2Fid%2FOIP.-TP4HAOrEqyzCIs1445m_AHaGP%3Fr%3D0%26pid%3DApi&sp=1755184646T689d9a97a990ea0bf884ed11ae905d18aaa9e3d7783687850f6a8c6a202d9805',
+                'image_path' => '/public/uploads/team/avocat4.jpg',
                 'order_position' => 1,
                 'is_active' => 1
             ],
@@ -372,7 +380,7 @@ class HomeController {
                 'name' => 'Maître Marie Martin',
                 'position' => 'Avocate Spécialisée - Droit de la Famille',
                 'description' => 'Experte en droit matrimonial et protection de l\'enfance, Maître Martin défend avec passion les intérêts de ses clients dans les situations familiales complexes.',
-                'image_url' => 'https://www.startpage.com/av/proxy-image?piurl=https%3A%2F%2Ftse2.mm.bing.net%2Fth%2Fid%2FOIP.dbpEWd9jx6p3L5YXCdjsDwHaE8%3Fr%3D0%26pid%3DApi&sp=1755184646T308a7243dd6a95a511259cc2fd26e7e85097d04396fe874127c48dd6ad8d02cd',
+                'image_path' => '/public/uploads/team/avocat5.jpg',
                 'order_position' => 2,
                 'is_active' => 1
             ]

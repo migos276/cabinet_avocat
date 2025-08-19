@@ -24,7 +24,6 @@
             min-height: 100vh;
         }
 
-        /* Sidebar */
         .sidebar {
             background: linear-gradient(135deg, #1f2937, #111827);
             color: white;
@@ -71,7 +70,6 @@
             width: 20px;
         }
 
-        /* Main Content */
         .main-content {
             padding: 2rem;
             max-height: 100vh;
@@ -93,7 +91,6 @@
             font-size: 0.9rem;
         }
 
-        /* Tabs */
         .tabs {
             display: flex;
             background: white;
@@ -128,7 +125,6 @@
             color: #374151;
         }
 
-        /* Tab Content */
         .tab-content {
             display: none;
             background: white;
@@ -141,7 +137,6 @@
             display: block;
         }
 
-        /* Forms */
         .form-grid {
             display: grid;
             gap: 1.5rem;
@@ -252,7 +247,6 @@
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
         }
 
-        /* Success Message */
         .alert-success {
             background: #d1fae5;
             color: #065f46;
@@ -262,7 +256,6 @@
             border: 1px solid #bbf7d0;
         }
 
-        /* Services Cards */
         .services-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
@@ -295,7 +288,6 @@
             font-size: 1.5rem;
         }
 
-        /* Team Cards */
         .team-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -318,7 +310,19 @@
             margin-bottom: 1rem;
         }
 
-        /* Rich Text Editor Styles */
+        .image-preview {
+            width: 100%;
+            height: 200px;
+            border-radius: 10px;
+            object-fit: cover;
+            margin-bottom: 1rem;
+            display: none;
+        }
+
+        .image-preview.show {
+            display: block;
+        }
+
         .rich-editor {
             border: 2px solid #e5e7eb;
             border-radius: 10px;
@@ -364,7 +368,6 @@
             background: #f9fafb;
         }
 
-        /* Responsive */
         @media (max-width: 768px) {
             .admin-layout {
                 grid-template-columns: 1fr;
@@ -395,7 +398,6 @@
 </head>
 <body>
     <div class="admin-layout">
-        <!-- Sidebar -->
         <aside class="sidebar">
             <div class="sidebar-header">
                 <h2><?php echo SITE_NAME; ?></h2>
@@ -425,7 +427,6 @@
             </ul>
         </aside>
 
-        <!-- Main Content -->
         <main class="main-content">
             <div class="page-header">
                 <h1>Contenu du site</h1>
@@ -439,7 +440,6 @@
                 </div>
             <?php endif; ?>
 
-            <!-- Tabs -->
             <div class="tabs">
                 <button class="tab-button active" onclick="openTab(event, 'general')">
                     <i class="fas fa-home"></i>
@@ -455,13 +455,11 @@
                 </button>
             </div>
 
-            <!-- General Content Tab -->
             <div id="general" class="tab-content active">
                 <form method="POST">
                     <input type="hidden" name="action" value="update_content">
                     
                     <div class="form-grid">
-                        <!-- Hero Section -->
                         <div class="form-section">
                             <h3 class="section-title">
                                 <i class="fas fa-star"></i>
@@ -478,7 +476,6 @@
                             </div>
                         </div>
 
-                        <!-- About Section -->
                         <div class="form-section">
                             <h3 class="section-title">
                                 <i class="fas fa-info-circle"></i>
@@ -495,7 +492,6 @@
                             </div>
                         </div>
 
-                        <!-- Services Section -->
                         <div class="form-section">
                             <h3 class="section-title">
                                 <i class="fas fa-gavel"></i>
@@ -512,7 +508,6 @@
                             </div>
                         </div>
 
-                        <!-- Team Section -->
                         <div class="form-section">
                             <h3 class="section-title">
                                 <i class="fas fa-users"></i>
@@ -539,7 +534,6 @@
                 </form>
             </div>
 
-            <!-- Services Tab -->
             <div id="services" class="tab-content">
                 <div class="services-grid">
                     <?php foreach ($services as $service): ?>
@@ -581,7 +575,7 @@
                                             <button type="button" class="editor-btn" onclick="formatText('underline')" title="Souligné">
                                                 <i class="fas fa-underline"></i>
                                             </button>
-                                            <button type="button" class="editor-btn" onclick="insertList('ul')" title="Liste à puces">
+                                            <button type="button" class="editor-btn" onclick="insertList('ul')" title="Liste à p decoding="async"uces">
                                                 <i class="fas fa-list-ul"></i>
                                             </button>
                                             <button type="button" class="editor-btn" onclick="insertList('ol')" title="Liste numérotée">
@@ -601,7 +595,6 @@
                                                     <li>Accompagnement tout au long de la procédure</li>
                                                     <li>Suivi post-dossier et conseils préventifs</li>
                                                 </ul>
-
                                                 <h3>Pourquoi nous choisir ?</h3>
                                                 <p>Fort de plus de 20 ans d\'expérience, notre cabinet vous garantit :</p>
                                                 <ul>
@@ -610,7 +603,6 @@
                                                     <li>Une disponibilité et une réactivité optimales</li>
                                                     <li>Des tarifs transparents et compétitifs</li>
                                                 </ul>
-
                                                 <h3>Première consultation</h3>
                                                 <p>Nous vous proposons une première consultation gratuite pour évaluer votre situation et vous présenter les différentes options qui s\'offrent à vous.</p>
                                             '; ?>
@@ -644,15 +636,13 @@
                 </div>
             </div>
 
-            <!-- Team Tab -->
             <div id="team" class="tab-content">
-                <!-- Add New Team Member -->
                 <div class="form-section" style="margin-bottom: 2rem;">
                     <h3 class="section-title">
                         <i class="fas fa-user-plus"></i>
                         Ajouter un nouveau membre
                     </h3>
-                    <form method="POST">
+                    <form method="POST" enctype="multipart/form-data">
                         <input type="hidden" name="action" value="add_team">
                         <div class="form-grid">
                             <div class="form-group">
@@ -668,8 +658,9 @@
                                 <textarea name="description" class="form-control textarea-lg" required></textarea>
                             </div>
                             <div class="form-group">
-                                <label class="form-label">URL de l'image</label>
-                                <input type="url" name="image_url" class="form-control" required>
+                                <label class="form-label">Image du membre (JPG, PNG, GIF, max 5MB)</label>
+                                <input type="file" name="image" class="form-control" accept="image/jpeg,image/png,image/gif" required onchange="previewImage(this, 'new_team_preview')">
+                                <img id="new_team_preview" class="image-preview" alt="Aperçu de l'image">
                             </div>
                         </div>
                         <button type="submit" class="btn btn-success">
@@ -679,11 +670,10 @@
                     </form>
                 </div>
 
-                <!-- Existing Team Members -->
                 <div class="team-grid">
                     <?php foreach ($team as $member): ?>
                         <div class="team-card">
-                            <form method="POST">
+                            <form method="POST" enctype="multipart/form-data">
                                 <input type="hidden" name="action" value="update_team">
                                 <input type="hidden" name="team_id" value="<?php echo $member['id']; ?>">
                                 
@@ -695,7 +685,8 @@
                                     </button>
                                 </div>
 
-                                <img src="<?php echo htmlspecialchars($member['image_url']); ?>" alt="<?php echo htmlspecialchars($member['name']); ?>" class="team-image">
+                                <img src="<?php echo htmlspecialchars($member['image_path']); ?>" alt="<?php echo htmlspecialchars($member['name']); ?>" class="team-image">
+                                <img id="preview_<?php echo $member['id']; ?>" class="image-preview" alt="Aperçu de la nouvelle image">
 
                                 <div class="form-group">
                                     <label class="form-label">Nom</label>
@@ -713,8 +704,8 @@
                                 </div>
 
                                 <div class="form-group">
-                                    <label class="form-label">URL de l'image</label>
-                                    <input type="url" name="image_url" class="form-control" value="<?php echo htmlspecialchars($member['image_url']); ?>" required>
+                                    <label class="form-label">Nouvelle image (optionnel, JPG, PNG, GIF, max 5MB)</label>
+                                    <input type="file" name="image" class="form-control" accept="image/jpeg,image/png,image/gif" onchange="previewImage(this, 'preview_<?php echo $member['id']; ?>')">
                                 </div>
 
                                 <button type="submit" class="btn btn-success">
@@ -730,34 +721,25 @@
     </div>
 
     <script>
-        // Gestion des onglets
         function openTab(evt, tabName) {
             var i, tabcontent, tablinks;
-            
-            // Masquer tous les contenus d'onglets
             tabcontent = document.getElementsByClassName("tab-content");
             for (i = 0; i < tabcontent.length; i++) {
                 tabcontent[i].classList.remove("active");
             }
-            
-            // Retirer la classe active de tous les boutons d'onglets
             tablinks = document.getElementsByClassName("tab-button");
             for (i = 0; i < tablinks.length; i++) {
                 tablinks[i].classList.remove("active");
             }
-            
-            // Afficher l'onglet sélectionné et marquer le bouton comme actif
             document.getElementById(tabName).classList.add("active");
             evt.currentTarget.classList.add("active");
         }
 
-        // Mise à jour de l'aperçu de couleur
         function updateColorPreview(input, serviceId) {
             const preview = document.getElementById('color_preview_' + serviceId);
             preview.style.background = input.value;
         }
 
-        // Éditeur de texte riche
         function formatText(command) {
             document.execCommand(command, false, null);
         }
@@ -779,14 +761,26 @@
             }
         }
 
-        // Sauvegarder le contenu du service
         function saveServiceContent(serviceId) {
             const editorContent = document.querySelector(`[data-service-id="${serviceId}"]`);
             const hiddenInput = document.getElementById(`detailed_content_${serviceId}`);
             hiddenInput.value = editorContent.innerHTML;
         }
 
-        // Sauvegarder automatiquement le contenu de tous les éditeurs avant soumission
+        function previewImage(input, previewId) {
+            const preview = document.getElementById(previewId);
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.src = e.target.result;
+                    preview.classList.add('show');
+                };
+                reader.readAsDataURL(input.files[0]);
+            } else {
+                preview.classList.remove('show');
+            }
+        }
+
         document.querySelectorAll('form').forEach(form => {
             form.addEventListener('submit', function() {
                 const editorContent = this.querySelector('.editor-content');
@@ -800,7 +794,6 @@
             });
         });
 
-        // Empêcher le collage de contenu formaté non désiré
         document.querySelectorAll('.editor-content').forEach(editor => {
             editor.addEventListener('paste', function(e) {
                 e.preventDefault();
@@ -809,7 +802,6 @@
             });
         });
 
-        // Initialiser les aperçus de couleur au chargement
         document.addEventListener('DOMContentLoaded', function() {
             const colorInputs = document.querySelectorAll('input[type="color"]');
             colorInputs.forEach(input => {
@@ -820,7 +812,6 @@
             });
         });
 
-        // Auto-save brouillon (optionnel)
         let autoSaveTimeout;
         document.querySelectorAll('.editor-content').forEach(editor => {
             editor.addEventListener('input', function() {
@@ -833,7 +824,6 @@
             });
         });
 
-        // Restaurer les brouillons au chargement
         document.addEventListener('DOMContentLoaded', function() {
             document.querySelectorAll('.editor-content').forEach(editor => {
                 const serviceId = editor.dataset.serviceId;
@@ -844,7 +834,6 @@
             });
         });
 
-        // Nettoyer les brouillons après sauvegarde réussie
         function clearDraft(serviceId) {
             localStorage.removeItem(`service_draft_${serviceId}`);
         }

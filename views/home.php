@@ -1584,39 +1584,39 @@
             </div>
         </div>
     </section>
-
+    <!-- Team Section -->
     <section id="team" class="section" style="background: var(--gradient-bg);">
-    <div class="container">
-        <div class="section-title">
-            <span class="badge mb-4">Notre équipe</span>
-            <h2><?php echo htmlspecialchars($content['team']['title'] ?? 'Des Experts à Vos Côtés'); ?></h2>
-            <p class="lead">
-                <?php echo htmlspecialchars($content['team']['subtitle'] ?? 'Des avocats expérimentés et passionnés, reconnus pour leur expertise et leur engagement'); ?>
-            </p>
-        </div>
-
-        <div class="team-container">
-            <button class="team-nav-btn team-nav-prev" aria-label="Précédent">
-                <i class="fas fa-chevron-left"></i>
-            </button>
-            <div class="team-grid">
-                <?php foreach ($team as $member): ?>
-                <div class="team-card">
-                    <img src="<?php echo htmlspecialchars($member['image_url']); ?>"
-                         alt="<?php echo htmlspecialchars($member['name']); ?>"
-                         class="team-image">
-                    <h4><?php echo htmlspecialchars($member['name']); ?></h4>
-                    <p class="team-position"><?php echo htmlspecialchars($member['position']); ?></p>
-                    <p class="team-description"><?php echo htmlspecialchars($member['description']); ?></p>
-                </div>
-                <?php endforeach; ?>
+        <div class="container">
+            <div class="section-title">
+                <span class="badge mb-4">Notre équipe</span>
+                <h2><?php echo htmlspecialchars($content['team']['title'] ?? 'Des Experts à Vos Côtés'); ?></h2>
+                <p class="lead">
+                    <?php echo htmlspecialchars($content['team']['subtitle'] ?? 'Des avocats expérimentés et passionnés, reconnus pour leur expertise et leur engagement'); ?>
+                </p>
             </div>
-            <button class="team-nav-btn team-nav-next" aria-label="Suivant">
-                <i class="fas fa-chevron-right"></i>
-            </button>
+
+            <div class="team-container">
+                <button class="team-nav-btn team-nav-prev" aria-label="Précédent">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <div class="team-grid">
+                    <?php foreach ($team as $member): ?>
+                    <div class="team-card">
+                        <img src="<?php echo htmlspecialchars($member['image_path']); ?>"
+                             alt="<?php echo htmlspecialchars($member['name']); ?>"
+                             class="team-image">
+                        <h4><?php echo htmlspecialchars($member['name']); ?></h4>
+                        <p class="team-position"><?php echo htmlspecialchars($member['position']); ?></p>
+                        <p class="team-description"><?php echo htmlspecialchars($member['description']); ?></p>
+                    </div>
+                    <?php endforeach; ?>
+                </div>
+                <button class="team-nav-btn team-nav-next" aria-label="Suivant">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
         </div>
-    </div>
-</section>
+    </section>
     <!-- Contact Section -->
     <section id="contact" class="section contact-section">
         <div class="container">
