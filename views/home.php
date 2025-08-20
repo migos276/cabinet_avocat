@@ -143,19 +143,20 @@
             margin-right: 0.5rem;
         }
 
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            padding: 0.6rem 1.2rem;
-            border-radius: 0.6rem;
-            font-weight: 600;
-            text-decoration: none;
-            transition: all 0.3s ease;
-            border: none;
-            cursor: pointer;
-            font-size: 0.9rem;
-        }
-
+ .btn {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.6rem;
+    padding-left: 1.8rem; /* Espacement à gauche */
+    padding-right: 1.8rem; /* Espacement à droite */
+    border-radius: 0.6rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    border: none;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
         .btn-primary {
             background: linear-gradient(135deg, #2563eb, #1d4ed8);
             color: white;
@@ -1419,7 +1420,7 @@
                 <div class="hero-buttons">
                     <a href="#contact" class="btn btn-secondary btn-lg">
                         <i class="fas fa-calendar-alt"></i>
-                        Consultation Gratuite
+                                PRENDRE RENDEZ-VOUS
                     </a>
                 </div>
             </div>

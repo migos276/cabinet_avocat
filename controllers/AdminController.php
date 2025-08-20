@@ -67,7 +67,56 @@ class AdminController {
                     }
                 }
                 $success = 'Contenu mis à jour avec succès!';
-            } elseif ($action === 'update_service') {
+            } 
+            elseif ($action === 'add_content_section') {
+                $section = $_POST['new_section'] ?? '';
+                $key = $_POST['new_key'] ?? '';
+                $value = $_POST['new_value'] ?? '';
+                
+                if ($section && $key) {
+                    $stmt = $this->db->prepare("
+                        INSERT INTO site_content (section, key_name, value, updated_at) 
+                        VALUES (?, ?, ?, datetime('now'))
+                    ");
+                    $stmt->execute([$section, $key, $value]);
+                    $success = 'Nouveau contenu ajouté avec succès!';
+                } else {
+                    $success = 'Erreur : Section et clé sont requis.';
+                }
+            }
+            elseif ($action === 'delete_content') {
+                $section = $_POST['content_section'] ?? '';
+                $key = $_POST['content_key'] ?? '';
+                
+                if ($section && $key) {
+                    $stmt = $this->db->prepare("DELETE FROM site_content WHERE section = ? AND key_name = ?");
+                    $stmt->execute([$section, $key]);
+                    $success = 'Contenu supprimé avec succès!';
+                }
+            }
+            elseif ($action === 'add_service') {
+                $title = $_POST['title'] ?? '';
+                $description = $_POST['description'] ?? '';
+                $icon = $_POST['icon'] ?? 'fas fa-gavel';
+                $color = $_POST['color'] ?? '#3b82f6';
+                $detailed_content = $_POST['detailed_content'] ?? '';
+                
+                if ($title && $description) {
+                    // Obtenir le prochain order_position
+                    $stmt = $this->db->query("SELECT COALESCE(MAX(order_position), 0) + 1 as next_position FROM services");
+                    $next_position = $stmt->fetchColumn();
+                    
+                    $stmt = $this->db->prepare("
+                        INSERT INTO services (title, description, icon, color, detailed_content, is_active, order_position, created_at, updated_at)
+                        VALUES (?, ?, ?, ?, ?, 1, ?, datetime('now'), datetime('now'))
+                    ");
+                    $stmt->execute([$title, $description, $icon, $color, $detailed_content, $next_position]);
+                    $success = 'Service ajouté avec succès!';
+                } else {
+                    $success = 'Erreur : Titre et description sont requis.';
+                }
+            }
+            elseif ($action === 'update_service') {
                 $id = $_POST['service_id'];
                 $title = $_POST['title'];
                 $description = $_POST['description'];
@@ -82,7 +131,28 @@ class AdminController {
                 ");
                 $stmt->execute([$title, $description, $icon, $color, $detailed_content, $id]);
                 $success = 'Service mis à jour avec succès!';
-            } elseif ($action === 'update_team') {
+            }
+            elseif ($action === 'delete_service') {
+                $id = $_POST['service_id'] ?? '';
+                if ($id) {
+                    $stmt = $this->db->prepare("DELETE FROM services WHERE id = ?");
+                    $stmt->execute([$id]);
+                    $success = 'Service supprimé avec succès!';
+                } else {
+                    $success = 'Erreur : ID du service manquant.';
+                }
+            }
+            elseif ($action === 'reorder_services') {
+                $orders = json_decode($_POST['orders'], true);
+                if ($orders) {
+                    foreach ($orders as $id => $position) {
+                        $stmt = $this->db->prepare("UPDATE services SET order_position = ? WHERE id = ?");
+                        $stmt->execute([$position, $id]);
+                    }
+                    $success = 'Ordre des services mis à jour avec succès!';
+                }
+            }
+            elseif ($action === 'update_team') {
                 $id = $_POST['team_id'];
                 $name = $_POST['name'];
                 $position = $_POST['position'];
@@ -100,7 +170,8 @@ class AdminController {
                     $stmt->execute([$name, $position, $description, $image_path, $id]);
                     $success = 'Membre de l\'équipe mis à jour avec succès!';
                 }
-            } elseif ($action === 'add_team') {
+            } 
+            elseif ($action === 'add_team') {
                 $name = $_POST['name'] ?? '';
                 $position = $_POST['position'] ?? '';
                 $description = $_POST['description'] ?? '';
@@ -111,8 +182,8 @@ class AdminController {
                         $success = $image_path;
                     } else {
                         $stmt = $this->db->prepare("
-                            INSERT INTO team_members (name, position, description, image_path, is_active, order_position)
-                            VALUES (?, ?, ?, ?, 1, (SELECT COALESCE(MAX(order_position), 0) + 1 FROM team_members))
+                            INSERT INTO team_members (name, position, description, image_path, is_active, order_position, created_at, updated_at)
+                            VALUES (?, ?, ?, ?, 1, (SELECT COALESCE(MAX(order_position), 0) + 1 FROM team_members), datetime('now'), datetime('now'))
                         ");
                         $stmt->execute([$name, $position, $description, $image_path]);
                         $success = 'Membre de l\'équipe ajouté avec succès!';
@@ -120,7 +191,8 @@ class AdminController {
                 } else {
                     $success = 'Erreur : Tous les champs, y compris l\'image, sont requis pour ajouter un membre.';
                 }
-            } elseif ($action === 'delete_team') {
+            } 
+            elseif ($action === 'delete_team') {
                 $id = $_POST['team_id'] ?? '';
                 if ($id) {
                     // Supprimer l'image associée
@@ -138,13 +210,28 @@ class AdminController {
                     $success = 'Erreur : ID du membre manquant.';
                 }
             }
+            elseif ($action === 'reorder_team') {
+                $orders = json_decode($_POST['orders'], true);
+                if ($orders) {
+                    foreach ($orders as $id => $position) {
+                        $stmt = $this->db->prepare("UPDATE team_members SET order_position = ? WHERE id = ?");
+                        $stmt->execute([$position, $id]);
+                    }
+                    $success = 'Ordre de l\'équipe mis à jour avec succès!';
+                }
+            }
         }
         
+        // Charger le contenu
         $stmt = $this->db->query("SELECT section, key_name, value FROM site_content ORDER BY section, key_name");
         $content = [];
         while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
             $content[$row['section']][$row['key_name']] = $row['value'];
         }
+        
+        // Charger toutes les sections uniques pour la gestion
+        $stmt = $this->db->query("SELECT DISTINCT section FROM site_content ORDER BY section");
+        $sections = $stmt->fetchAll(PDO::FETCH_COLUMN);
         
         $services = $this->db->query("SELECT * FROM services ORDER BY order_position")->fetchAll(PDO::FETCH_ASSOC);
         $team = $this->db->query("SELECT * FROM team_members ORDER BY order_position")->fetchAll(PDO::FETCH_ASSOC);
