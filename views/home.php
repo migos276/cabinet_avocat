@@ -1357,6 +1357,77 @@
         height: 30px;
     }
 }
+
+/* News Section Styles */
+.news-section {
+    padding: 80px 0;
+    background: var(--gradient-bg);
+}
+
+.news-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+}
+
+.news-card {
+    background: white;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 5px 15px var(--shadow-light);
+    transition: all 0.3s ease;
+}
+
+.news-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 15px 30px var(--shadow-medium);
+}
+
+.news-image {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+}
+
+.news-content {
+    padding: 2rem;
+}
+
+.news-date {
+    font-size: 0.9rem;
+    color: var(--text-light);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.news-title {
+    font-size: 1.5rem;
+    color: var(--primary-blue);
+    margin-bottom: 1rem;
+}
+
+.news-excerpt {
+    color: var(--text-dark);
+    line-height: 1.6;
+    margin-bottom: 1.5rem;
+}
+
+@media (max-width: 768px) {
+    .news-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .news-content {
+        padding: 1.5rem;
+    }
+    
+    .news-title {
+        font-size: 1.3rem;
+    }
+}
+
     </style>
 </head>
 <body>
@@ -1389,7 +1460,7 @@
                     <i class="fas fa-users"></i>Équipe
                 </a></li>
                 <li><a href="#contact" class="btn btn-primary">
-                    <i class="fas fa-calendar-alt"></i>Contact
+                    <i class="fas fa-calendar-alt" style="margin-right: 0.5rem;"></i>Contact
                 </a></li>
             </ul>
 
@@ -1419,8 +1490,8 @@
                 </p>
                 <div class="hero-buttons">
                     <a href="#contact" class="btn btn-secondary btn-lg">
-                        <i class="fas fa-calendar-alt"></i>
-                                PRENDRE RENDEZ-VOUS
+                        <i class="fas fa-calendar-alt" style="margin-right: 0.75rem;"></i>
+                        <span>PRENDRE RENDEZ-VOUS</span>
                     </a>
                 </div>
             </div>
@@ -1618,6 +1689,44 @@
             </div>
         </div>
     </section>
+
+    <!-- News Section -->
+    <section id="news" class="news-section section">
+        <div class="container">
+            <div class="section-title">
+                <span class="badge mb-4">Actualités</span>
+                <h2>Nos dernières actualités</h2>
+                <p class="lead">
+                    Restez informé des nouveautés du cabinet et des événements importants
+                </p>
+            </div>
+
+            <div class="news-grid">
+                <?php foreach ($news as $item): ?>
+                <div class="news-card">
+                    <?php if ($item['image_path']): ?>
+                    <img src="<?php echo htmlspecialchars($item['image_path']); ?>" alt="<?php echo htmlspecialchars($item['title']); ?>" class="news-image">
+                    <?php endif; ?>
+                    <div class="news-content">
+                        <p class="news-date">
+                            <i class="fas fa-calendar-alt"></i>
+                            <?php echo date('d F Y', strtotime($item['publish_date'])); ?>
+                        </p>
+                        <h4 class="news-title"><?php echo htmlspecialchars($item['title']); ?></h4>
+                        <div class="news-excerpt">
+                            <?php echo nl2br(htmlspecialchars(substr(strip_tags($item['content']), 0, 200))); ?>...
+                        </div>
+                        <a href="#news-<?php echo $item['id']; ?>" class="btn btn-outline">
+                            <i class="fas fa-arrow-right"></i>
+                            Lire la suite
+                        </a>
+                    </div>
+                </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+    </section>
+
     <!-- Contact Section -->
     <section id="contact" class="section contact-section">
         <div class="container">
@@ -2437,4 +2546,4 @@ document.addEventListener('DOMContentLoaded', initializeTeamScroll);
         });
     </script>
 </body>
-</html>
+</html

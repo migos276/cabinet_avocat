@@ -213,6 +213,10 @@
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
         }
 
+        .form-control.error {
+            border-color: #ef4444;
+        }
+
         .form-control-lg {
             padding: 1rem 1.25rem;
             font-size: 1.1rem;
@@ -286,22 +290,42 @@
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
         }
 
-        .alert-success {
-            background: #d1fae5;
-            color: #065f46;
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .alert-success, .alert-error {
             padding: 1rem;
             border-radius: 10px;
             margin-bottom: 2rem;
-            border: 1px solid #bbf7d0;
+            border: 1px solid;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
 
-        .services-grid, .team-grid {
+        .alert-success {
+            background: #d1fae5;
+            color: #065f46;
+            border-color: #bbf7d0;
+        }
+
+        .alert-error {
+            background: #fee2e2;
+            color: #991b1b;
+            border-color: #fecaca;
+        }
+
+        .services-grid, .team-grid, .news-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
             gap: 1.5rem;
         }
 
-        .service-card, .team-card {
+        .service-card, .team-card, .news-card {
             background: white;
             border-radius: 15px;
             padding: 1.5rem;
@@ -328,7 +352,7 @@
             font-size: 1.5rem;
         }
 
-        .team-image {
+        .team-image, .news-image {
             width: 100%;
             height: 200px;
             border-radius: 10px;
@@ -390,6 +414,10 @@
             line-height: 1.6;
         }
 
+        .editor-content.error {
+            border: 2px solid #ef4444;
+        }
+
         .editor-content:focus {
             background: #f9fafb;
         }
@@ -441,7 +469,7 @@
             font-size: 0.8rem;
         }
 
-        .add-service-form, .add-team-form {
+        .add-service-form, .add-team-form, .add-news-form {
             background: #f0fdf4;
             border: 1px solid #bbf7d0;
             border-radius: 15px;
@@ -511,6 +539,19 @@
             font-size: 0.8rem;
         }
 
+        .required::after {
+            content: '*';
+            color: #ef4444;
+            margin-left: 0.25rem;
+        }
+
+        .optional::after {
+            content: '(optionnel)';
+            color: #6b7280;
+            font-size: 0.8rem;
+            margin-left: 0.25rem;
+        }
+
         @media (max-width: 768px) {
             .admin-layout {
                 grid-template-columns: 1fr;
@@ -533,8 +574,7 @@
                 min-width: auto;
             }
             
-            .services-grid,
-            .team-grid {
+            .services-grid, .team-grid, .news-grid {
                 grid-template-columns: 1fr;
             }
 
@@ -548,7 +588,7 @@
     <div class="admin-layout">
         <aside class="sidebar">
             <div class="sidebar-header">
-                <h2><?php echo SITE_NAME; ?></h2>
+                <h2><?php echo h(SITE_NAME); ?></h2>
                 <p>Administration</p>
             </div>
             <ul class="sidebar-nav">
@@ -584,7 +624,13 @@
             <?php if (!empty($success)): ?>
                 <div class="alert-success">
                     <i class="fas fa-check-circle"></i>
-                    <?php echo htmlspecialchars($success); ?>
+                    <?php echo h($success); ?>
+                </div>
+            <?php endif; ?>
+            <?php if (!empty($error)): ?>
+                <div class="alert-error">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <?php echo h($error); ?>
                 </div>
             <?php endif; ?>
 
@@ -605,12 +651,17 @@
                     <i class="fas fa-users"></i>
                     Équipe
                 </button>
+                <button class="tab-button" onclick="openTab(event, 'news')">
+                    <i class="fas fa-newspaper"></i>
+                    Actualités
+                </button>
             </div>
 
             <!-- Contenu général -->
             <div id="general" class="tab-content active">
-                <form method="POST">
+                <form method="POST" id="general-content-form">
                     <input type="hidden" name="action" value="update_content">
+                    <input type="hidden" name="csrf_token" value="<?php echo generateCSRFToken(); ?>">
                     
                     <div class="form-grid">
                         <div class="form-section">
@@ -621,13 +672,13 @@
                                 </span>
                             </h3>
                             <div class="form-group">
-                                <label class="form-label">Titre principal</label>
+                                <label class="form-label required">Titre principal</label>
                                 <input type="text" name="content[hero][title]" class="form-control form-control-lg" 
-                                       value="<?php echo htmlspecialchars($content['hero']['title'] ?? 'Excellence Juridique à Votre Service'); ?>">
+                                       value="<?php echo h($content['hero']['title'] ?? 'Excellence Juridique à Votre Service'); ?>" required>
                             </div>
                             <div class="form-group">
-                                <label class="form-label">Sous-titre</label>
-                                <textarea name="content[hero][subtitle]" class="form-control" rows="3"><?php echo htmlspecialchars($content['hero']['subtitle'] ?? 'Depuis plus de 20 ans, nous accompagnons nos clients avec expertise, intégrité et dévouement dans tous leurs défis juridiques les plus complexes.'); ?></textarea>
+                                <label class="form-label required">Sous-titre</label>
+                                <textarea name="content[hero][subtitle]" class="form-control" rows="3" required><?php echo h($content['hero']['subtitle'] ?? 'Depuis plus de 20 ans, nous accompagnons nos clients avec expertise, intégrité et dévouement dans tous leurs défis juridiques les plus complexes.'); ?></textarea>
                             </div>
                         </div>
 
@@ -639,13 +690,13 @@
                                 </span>
                             </h3>
                             <div class="form-group">
-                                <label class="form-label">Titre</label>
+                                <label class="form-label required">Titre</label>
                                 <input type="text" name="content[about][title]" class="form-control" 
-                                       value="<?php echo htmlspecialchars($content['about']['title'] ?? 'Votre Réussite, Notre Mission'); ?>">
+                                       value="<?php echo h($content['about']['title'] ?? 'Votre Réussite, Notre Mission'); ?>" required>
                             </div>
                             <div class="form-group">
-                                <label class="form-label">Sous-titre</label>
-                                <textarea name="content[about][subtitle]" class="form-control" rows="3"><?php echo htmlspecialchars($content['about']['subtitle'] ?? 'Fort d\'une expérience reconnue et d\'une approche personnalisée, notre cabinet vous offre un accompagnement juridique d\'excellence adapté à vos besoins spécifiques.'); ?></textarea>
+                                <label class="form-label required">Sous-titre</label>
+                                <textarea name="content[about][subtitle]" class="form-control" rows="3" required><?php echo h($content['about']['subtitle'] ?? 'Fort d\'une expérience reconnue et d\'une approche personnalisée, notre cabinet vous offre un accompagnement juridique d\'excellence adapté à vos besoins spécifiques.'); ?></textarea>
                             </div>
                         </div>
 
@@ -657,13 +708,13 @@
                                 </span>
                             </h3>
                             <div class="form-group">
-                                <label class="form-label">Titre</label>
+                                <label class="form-label required">Titre</label>
                                 <input type="text" name="content[services][title]" class="form-control" 
-                                       value="<?php echo htmlspecialchars($content['services']['title'] ?? 'Domaines d\'Expertise'); ?>">
+                                       value="<?php echo h($content['services']['title'] ?? 'Domaines d\'Expertise'); ?>" required>
                             </div>
                             <div class="form-group">
-                                <label class="form-label">Sous-titre</label>
-                                <textarea name="content[services][subtitle]" class="form-control" rows="3"><?php echo htmlspecialchars($content['services']['subtitle'] ?? 'Une expertise reconnue dans des domaines juridiques essentiels pour répondre à tous vos besoins'); ?></textarea>
+                                <label class="form-label required">Sous-titre</label>
+                                <textarea name="content[services][subtitle]" class="form-control" rows="3" required><?php echo h($content['services']['subtitle'] ?? 'Une expertise reconnue dans des domaines juridiques essentiels pour répondre à tous vos besoins'); ?></textarea>
                             </div>
                         </div>
 
@@ -675,13 +726,31 @@
                                 </span>
                             </h3>
                             <div class="form-group">
-                                <label class="form-label">Titre</label>
+                                <label class="form-label required">Titre</label>
                                 <input type="text" name="content[team][title]" class="form-control" 
-                                       value="<?php echo htmlspecialchars($content['team']['title'] ?? 'Des Experts à Vos Côtés'); ?>">
+                                       value="<?php echo h($content['team']['title'] ?? 'Des Experts à Vos Côtés'); ?>" required>
                             </div>
                             <div class="form-group">
-                                <label class="form-label">Sous-titre</label>
-                                <textarea name="content[team][subtitle]" class="form-control" rows="3"><?php echo htmlspecialchars($content['team']['subtitle'] ?? 'Des avocats expérimentés et passionnés, reconnus pour leur expertise et leur engagement'); ?></textarea>
+                                <label class="form-label required">Sous-titre</label>
+                                <textarea name="content[team][subtitle]" class="form-control" rows="3" required><?php echo h($content['team']['subtitle'] ?? 'Des avocats expérimentés et passionnés, reconnus pour leur expertise et leur engagement'); ?></textarea>
+                            </div>
+                        </div>
+
+                        <div class="form-section">
+                            <h3 class="section-title">
+                                <span class="section-title-left">
+                                    <i class="fas fa-newspaper"></i>
+                                    Section Actualités
+                                </span>
+                            </h3>
+                            <div class="form-group">
+                                <label class="form-label required">Titre</label>
+                                <input type="text" name="content[news][title]" class="form-control" 
+                                       value="<?php echo h($content['news']['title'] ?? 'Nos Dernières Actualités'); ?>" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label required">Sous-titre</label>
+                                <textarea name="content[news][subtitle]" class="form-control" rows="3" required><?php echo h($content['news']['subtitle'] ?? 'Restez informé des dernières nouvelles et mises à jour juridiques de notre cabinet.'); ?></textarea>
                             </div>
                         </div>
                     </div>
@@ -712,35 +781,37 @@
                             <i class="fas fa-plus"></i>
                             Ajouter du nouveau contenu
                         </h4>
-                        <form method="POST">
+                        <form method="POST" id="add-content-form">
                             <input type="hidden" name="action" value="add_content_section">
+                            <input type="hidden" name="csrf_token" value="<?php echo generateCSRFToken(); ?>">
                             <div class="form-row">
                                 <div class="form-group">
-                                    <label class="form-label">Section</label>
-                                    <select name="new_section" class="form-control" onchange="toggleCustomSection(this)">
+                                    <label class="form-label required">Section</label>
+                                    <select name="new_section" class="form-control" onchange="toggleCustomSection(this)" required>
                                         <option value="">Sélectionner une section</option>
                                         <option value="hero">Hero (Accueil)</option>
                                         <option value="about">À propos</option>
                                         <option value="services">Services</option>
                                         <option value="team">Équipe</option>
+                                        <option value="news">Actualités</option>
                                         <option value="contact">Contact</option>
                                         <option value="footer">Footer</option>
                                         <option value="custom">Nouvelle section personnalisée</option>
                                     </select>
                                 </div>
                                 <div class="form-group" id="customSectionGroup" style="display: none;">
-                                    <label class="form-label">Nom de la section personnalisée</label>
+                                    <label class="form-label required">Nom de la section personnalisée</label>
                                     <input type="text" id="customSectionInput" class="form-control" placeholder="ex: testimonials, features">
                                 </div>
                             </div>
                             <div class="form-row">
                                 <div class="form-group">
-                                    <label class="form-label">Clé</label>
+                                    <label class="form-label required">Clé</label>
                                     <input type="text" name="new_key" class="form-control" placeholder="ex: title, subtitle, description" required>
                                 </div>
                                 <div class="form-group">
-                                    <label class="form-label">Valeur</label>
-                                    <textarea name="new_value" class="form-control" rows="3" placeholder="Contenu à afficher"></textarea>
+                                    <label class="form-label required">Valeur</label>
+                                    <textarea name="new_value" class="form-control" rows="3" placeholder="Contenu à afficher" required></textarea>
                                 </div>
                             </div>
                             <button type="submit" class="btn btn-success">
@@ -762,25 +833,26 @@
                                 <div style="margin-bottom: 1.5rem;">
                                     <h5 style="color: #3b82f6; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
                                         <i class="fas fa-folder"></i>
-                                        <?php echo ucfirst($section); ?>
+                                        <?php echo h(ucfirst($section)); ?>
                                     </h5>
                                     <?php foreach ($keys as $key => $value): ?>
                                         <div class="content-item">
                                             <div>
-                                                <div class="content-path"><?php echo $section; ?>.<?php echo $key; ?></div>
+                                                <div class="content-path"><?php echo h($section); ?>.<?php echo h($key); ?></div>
                                                 <div style="margin-top: 0.5rem; color: #6b7280; font-size: 0.9rem;">
-                                                    <?php echo strlen($value) > 100 ? substr(htmlspecialchars($value), 0, 100) . '...' : htmlspecialchars($value); ?>
+                                                    <?php echo strlen($value) > 100 ? substr(h($value), 0, 100) . '...' : h($value); ?>
                                                 </div>
                                             </div>
                                             <div style="display: flex; gap: 0.5rem;">
-                                                <button type="button" class="btn btn-mini btn-outline" onclick="editContent('<?php echo $section; ?>', '<?php echo $key; ?>', '<?php echo htmlspecialchars($value, ENT_QUOTES); ?>')">
+                                                <button type="button" class="btn btn-mini btn-outline" onclick="editContent('<?php echo h($section); ?>', '<?php echo h($key); ?>', '<?php echo h($value, ENT_QUOTES); ?>')">
                                                     <i class="fas fa-edit"></i>
                                                     Modifier
                                                 </button>
                                                 <form method="POST" style="display: inline;" onsubmit="return confirm('Supprimer ce contenu ?');">
                                                     <input type="hidden" name="action" value="delete_content">
-                                                    <input type="hidden" name="content_section" value="<?php echo $section; ?>">
-                                                    <input type="hidden" name="content_key" value="<?php echo $key; ?>">
+                                                    <input type="hidden" name="content_section" value="<?php echo h($section); ?>">
+                                                    <input type="hidden" name="content_key" value="<?php echo h($key); ?>">
+                                                    <input type="hidden" name="csrf_token" value="<?php echo generateCSRFToken(); ?>">
                                                     <button type="submit" class="btn btn-mini btn-danger">
                                                         <i class="fas fa-trash"></i>
                                                     </button>
@@ -807,38 +879,39 @@
                         <i class="fas fa-plus"></i>
                         Ajouter un nouveau service
                     </h3>
-                    <form method="POST">
+                    <form method="POST" id="add-service-form">
                         <input type="hidden" name="action" value="add_service">
+                        <input type="hidden" name="csrf_token" value="<?php echo generateCSRFToken(); ?>">
                         
                         <div class="form-row">
                             <div class="form-group">
-                                <label class="form-label">Titre du service *</label>
+                                <label class="form-label required">Titre du service</label>
                                 <input type="text" name="title" class="form-control" required placeholder="ex: Droit des Affaires">
                             </div>
                             <div class="form-group">
-                                <label class="form-label">Icône (Font Awesome) *</label>
-                                <input type="text" name="icon" class="form-control" value="fas fa-gavel" placeholder="fas fa-gavel">
+                                <label class="form-label required">Icône (Font Awesome)</label>
+                                <input type="text" name="icon" class="form-control" value="fas fa-gavel" placeholder="fas fa-gavel" required>
                             </div>
                         </div>
                         
                         <div class="form-row">
                             <div class="form-group">
-                                <label class="form-label">Couleur *</label>
+                                <label class="form-label required">Couleur</label>
                                 <div class="color-picker-group">
-                                    <input type="color" name="color" class="form-control" value="#3b82f6" onchange="updateAddColorPreview(this)">
+                                    <input type="color" name="color" class="form-control" value="#3b82f6" onchange="updateAddColorPreview(this)" required>
                                     <div class="color-preview" id="add_color_preview" style="background: #3b82f6;">
                                         <i class="fas fa-gavel"></i>
                                     </div>
                                 </div>
                             </div>
                             <div class="form-group">
-                                <label class="form-label">Description courte *</label>
+                                <label class="form-label required">Description courte</label>
                                 <textarea name="description" class="form-control" rows="3" required placeholder="Description qui apparaîtra sur la page d'accueil"></textarea>
                             </div>
                         </div>
                         
                         <div class="form-group">
-                            <label class="form-label">Contenu détaillé (pour la page dédiée)</label>
+                            <label class="form-label optional">Contenu détaillé (pour la page dédiée)</label>
                             <div class="rich-editor">
                                 <div class="editor-toolbar">
                                     <button type="button" class="editor-btn" onclick="formatText('bold')" title="Gras">
@@ -867,7 +940,7 @@
                             <input type="hidden" name="detailed_content" id="new_detailed_content">
                         </div>
                         
-                        <button type="submit" class="btn btn-success" onclick="saveNewServiceContent()">
+                        <button type="submit" class="btn btn-success">
                             <i class="fas fa-plus"></i>
                             Ajouter le service
                         </button>
@@ -875,7 +948,7 @@
                 </div>
 
                 <!-- Services existants -->
-                <div style="display: flex; justify-content: between; align-items: center; margin-bottom: 1rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                     <h3>Services existants</h3>
                     <div class="btn btn-outline" onclick="toggleReorderMode()">
                         <i class="fas fa-sort"></i>
@@ -885,27 +958,29 @@
 
                 <div class="services-grid" id="servicesGrid">
                     <?php foreach ($services as $index => $service): ?>
-                        <div class="service-card sortable-item" data-id="<?php echo $service['id']; ?>">
+                        <div class="service-card sortable-item" data-id="<?php echo h($service['id']); ?>">
                             <div class="order-indicator"><?php echo $index + 1; ?></div>
                             <div class="drag-handle" style="display: none;">
                                 <i class="fas fa-grip-vertical"></i>
                             </div>
                             
-                            <form method="POST">
+                            <form method="POST" id="service-form-<?php echo h($service['id']); ?>">
                                 <input type="hidden" name="action" value="update_service">
-                                <input type="hidden" name="service_id" value="<?php echo $service['id']; ?>">
+                                <input type="hidden" name="service_id" value="<?php echo h($service['id']); ?>">
+                                <input type="hidden" name="csrf_token" value="<?php echo generateCSRFToken(); ?>">
                                 
                                 <div class="card-header">
-                                    <div class="service-icon" style="background: <?php echo htmlspecialchars($service['color']); ?>;">
-                                        <i class="<?php echo htmlspecialchars($service['icon']); ?>"></i>
+                                    <div class="service-icon" style="background: <?php echo h($service['color']); ?>;">
+                                        <i class="<?php echo h($service['icon']); ?>"></i>
                                     </div>
                                     <div style="flex: 1;">
-                                        <h4><?php echo htmlspecialchars($service['title']); ?></h4>
-                                        <small style="color: #6b7280;">ID: <?php echo $service['id']; ?></small>
+                                        <h4><?php echo h($service['title']); ?></h4>
+                                        <small style="color: #6b7280;">ID: <?php echo h($service['id']); ?></small>
                                     </div>
                                     <form method="POST" style="display: inline;" onsubmit="return confirm('Supprimer ce service ?');">
                                         <input type="hidden" name="action" value="delete_service">
-                                        <input type="hidden" name="service_id" value="<?php echo $service['id']; ?>">
+                                        <input type="hidden" name="service_id" value="<?php echo h($service['id']); ?>">
+                                        <input type="hidden" name="csrf_token" value="<?php echo generateCSRFToken(); ?>">
                                         <button type="submit" class="btn btn-mini btn-danger">
                                             <i class="fas fa-trash"></i>
                                         </button>
@@ -913,17 +988,17 @@
                                 </div>
 
                                 <div class="form-group">
-                                    <label class="form-label">Titre du service</label>
-                                    <input type="text" name="title" class="form-control" value="<?php echo htmlspecialchars($service['title']); ?>" required>
+                                    <label class="form-label required">Titre du service</label>
+                                    <input type="text" name="title" class="form-control" value="<?php echo h($service['title']); ?>" required>
                                 </div>
 
                                 <div class="form-group">
-                                    <label class="form-label">Description courte</label>
-                                    <textarea name="description" class="form-control" rows="3" required><?php echo htmlspecialchars($service['description']); ?></textarea>
+                                    <label class="form-label required">Description courte</label>
+                                    <textarea name="description" class="form-control" rows="3" required><?php echo h($service['description']); ?></textarea>
                                 </div>
 
                                 <div class="form-group">
-                                    <label class="form-label">Contenu détaillé</label>
+                                    <label class="form-label optional">Contenu détaillé</label>
                                     <div class="rich-editor">
                                         <div class="editor-toolbar">
                                             <button type="button" class="editor-btn" onclick="formatText('bold')" title="Gras">
@@ -939,30 +1014,30 @@
                                                 <i class="fas fa-heading"></i>
                                             </button>
                                         </div>
-                                        <div class="editor-content" contenteditable="true" data-service-id="<?php echo $service['id']; ?>">
-                                            <?php echo !empty($service['detailed_content']) ? $service['detailed_content'] : 'Contenu détaillé à compléter...'; ?>
+                                        <div class="editor-content" contenteditable="true" data-service-id="<?php echo h($service['id']); ?>">
+                                            <?php echo !empty($service['detailed_content']) ? $service['detailed_content'] : '<p>Contenu détaillé à compléter...</p>'; ?>
                                         </div>
                                     </div>
-                                    <input type="hidden" name="detailed_content" id="detailed_content_<?php echo $service['id']; ?>">
+                                    <input type="hidden" name="detailed_content" id="detailed_content_<?php echo h($service['id']); ?>">
                                 </div>
 
                                 <div class="form-row">
                                     <div class="form-group">
-                                        <label class="form-label">Icône</label>
-                                        <input type="text" name="icon" class="form-control" value="<?php echo htmlspecialchars($service['icon']); ?>" placeholder="fas fa-gavel">
+                                        <label class="form-label required">Icône</label>
+                                        <input type="text" name="icon" class="form-control" value="<?php echo h($service['icon']); ?>" placeholder="fas fa-gavel" required>
                                     </div>
                                     <div class="form-group">
-                                        <label class="form-label">Couleur</label>
+                                        <label class="form-label required">Couleur</label>
                                         <div class="color-picker-group">
-                                            <input type="color" name="color" class="form-control" value="<?php echo htmlspecialchars($service['color']); ?>" onchange="updateColorPreview(this, <?php echo $service['id']; ?>)">
-                                            <div class="color-preview" id="color_preview_<?php echo $service['id']; ?>" style="background: <?php echo htmlspecialchars($service['color']); ?>;">
-                                                <i class="<?php echo htmlspecialchars($service['icon']); ?>"></i>
+                                            <input type="color" name="color" class="form-control" value="<?php echo h($service['color']); ?>" onchange="updateColorPreview(this, <?php echo h($service['id']); ?>)" required>
+                                            <div class="color-preview" id="color_preview_<?php echo h($service['id']); ?>" style="background: <?php echo h($service['color']); ?>;">
+                                                <i class="<?php echo h($service['icon']); ?>"></i>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
 
-                                <button type="submit" class="btn btn-success" onclick="saveServiceContent(<?php echo $service['id']; ?>)">
+                                <button type="submit" class="btn btn-success">
                                     <i class="fas fa-save"></i>
                                     Sauvegarder
                                 </button>
@@ -980,25 +1055,26 @@
                         <i class="fas fa-user-plus"></i>
                         Ajouter un nouveau membre
                     </h3>
-                    <form method="POST" enctype="multipart/form-data">
+                    <form method="POST" enctype="multipart/form-data" id="add-team-form">
                         <input type="hidden" name="action" value="add_team">
+                        <input type="hidden" name="csrf_token" value="<?php echo generateCSRFToken(); ?>">
                         <div class="form-row">
                             <div class="form-group">
-                                <label class="form-label">Nom *</label>
+                                <label class="form-label required">Nom</label>
                                 <input type="text" name="name" class="form-control" required>
                             </div>
                             <div class="form-group">
-                                <label class="form-label">Poste *</label>
+                                <label class="form-label required">Poste</label>
                                 <input type="text" name="position" class="form-control" required>
                             </div>
                         </div>
                         <div class="form-group">
-                            <label class="form-label">Description *</label>
+                            <label class="form-label required">Description</label>
                             <textarea name="description" class="form-control textarea-lg" required></textarea>
                         </div>
                         <div class="form-group">
-                            <label class="form-label">Image du membre (JPG, PNG, GIF, max 5MB) *</label>
-                            <input type="file" name="image" class="form-control" accept="image/jpeg,image/png,image/gif" required onchange="previewImage(this, 'new_team_preview')">
+                            <label class="form-label required">Image du membre (JPG, PNG, max 5MB)</label>
+                            <input type="file" name="image" class="form-control" accept="image/jpeg,image/png" required onchange="previewImage(this, 'new_team_preview')">
                             <img id="new_team_preview" class="image-preview" alt="Aperçu de l'image">
                         </div>
                         <button type="submit" class="btn btn-success">
@@ -1009,7 +1085,7 @@
                 </div>
 
                 <!-- Équipe existante -->
-                <div style="display: flex; justify-content: between; align-items: center; margin-bottom: 1rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                     <h3>Équipe existante</h3>
                     <div class="btn btn-outline" onclick="toggleTeamReorderMode()">
                         <i class="fas fa-sort"></i>
@@ -1019,21 +1095,23 @@
 
                 <div class="team-grid" id="teamGrid">
                     <?php foreach ($team as $index => $member): ?>
-                        <div class="team-card sortable-item" data-id="<?php echo $member['id']; ?>">
+                        <div class="team-card sortable-item" data-id="<?php echo h($member['id']); ?>">
                             <div class="order-indicator"><?php echo $index + 1; ?></div>
                             <div class="drag-handle" style="display: none;">
                                 <i class="fas fa-grip-vertical"></i>
                             </div>
                             
-                            <form method="POST" enctype="multipart/form-data">
+                            <form method="POST" enctype="multipart/form-data" id="team-form-<?php echo h($member['id']); ?>">
                                 <input type="hidden" name="action" value="update_team">
-                                <input type="hidden" name="team_id" value="<?php echo $member['id']; ?>">
+                                <input type="hidden" name="team_id" value="<?php echo h($member['id']); ?>">
+                                <input type="hidden" name="csrf_token" value="<?php echo generateCSRFToken(); ?>">
                                 
                                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                                    <h4><?php echo htmlspecialchars($member['name']); ?></h4>
+                                    <h4><?php echo h($member['name']); ?></h4>
                                     <form method="POST" style="display: inline;" onsubmit="return confirm('Voulez-vous vraiment supprimer ce membre ?');">
                                         <input type="hidden" name="action" value="delete_team">
-                                        <input type="hidden" name="team_id" value="<?php echo $member['id']; ?>">
+                                        <input type="hidden" name="team_id" value="<?php echo h($member['id']); ?>">
+                                        <input type="hidden" name="csrf_token" value="<?php echo generateCSRFToken(); ?>">
                                         <button type="submit" class="btn btn-mini btn-danger">
                                             <i class="fas fa-trash"></i>
                                             Supprimer
@@ -1041,27 +1119,172 @@
                                     </form>
                                 </div>
 
-                                <img src="<?php echo htmlspecialchars($member['image_path']); ?>" alt="<?php echo htmlspecialchars($member['name']); ?>" class="team-image">
-                                <img id="preview_<?php echo $member['id']; ?>" class="image-preview" alt="Aperçu de la nouvelle image">
+                                <img src="<?php echo h($member['image_path']); ?>" alt="<?php echo h($member['name']); ?>" class="team-image">
+                                <img id="preview_<?php echo h($member['id']); ?>" class="image-preview" alt="Aperçu de la nouvelle image">
 
                                 <div class="form-group">
-                                    <label class="form-label">Nom</label>
-                                    <input type="text" name="name" class="form-control" value="<?php echo htmlspecialchars($member['name']); ?>" required>
+                                    <label class="form-label required">Nom</label>
+                                    <input type="text" name="name" class="form-control" value="<?php echo h($member['name']); ?>" required>
                                 </div>
 
                                 <div class="form-group">
-                                    <label class="form-label">Poste</label>
-                                    <input type="text" name="position" class="form-control" value="<?php echo htmlspecialchars($member['position']); ?>" required>
+                                    <label class="form-label required">Poste</label>
+                                    <input type="text" name="position" class="form-control" value="<?php echo h($member['position']); ?>" required>
                                 </div>
 
                                 <div class="form-group">
-                                    <label class="form-label">Description</label>
-                                    <textarea name="description" class="form-control textarea-lg" required><?php echo htmlspecialchars($member['description']); ?></textarea>
+                                    <label class="form-label required">Description</label>
+                                    <textarea name="description" class="form-control textarea-lg" required><?php echo h($member['description']); ?></textarea>
                                 </div>
 
                                 <div class="form-group">
-                                    <label class="form-label">Nouvelle image (optionnel, JPG, PNG, GIF, max 5MB)</label>
-                                    <input type="file" name="image" class="form-control" accept="image/jpeg,image/png,image/gif" onchange="previewImage(this, 'preview_<?php echo $member['id']; ?>')">
+                                    <label class="form-label optional">Nouvelle image (JPG, PNG, max 5MB)</label>
+                                    <input type="file" name="image" class="form-control" accept="image/jpeg,image/png" onchange="previewImage(this, 'preview_<?php echo h($member['id']); ?>')">
+                                </div>
+
+                                <button type="submit" class="btn btn-success">
+                                    <i class="fas fa-save"></i>
+                                    Sauvegarder
+                                </button>
+                            </form>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+
+            <!-- Actualités -->
+            <div id="news" class="tab-content">
+                <!-- Formulaire d'ajout d'actualité -->
+                <div class="add-news-form">
+                    <h3 style="margin-bottom: 1rem;">
+                        <i class="fas fa-newspaper"></i>
+                        Ajouter une nouvelle actualité
+                    </h3>
+                    <form method="POST" enctype="multipart/form-data" id="add-news-form">
+                        <input type="hidden" name="action" value="add_news">
+                        <input type="hidden" name="csrf_token" value="<?php echo generateCSRFToken(); ?>">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label required">Titre</label>
+                                <input type="text" name="title" class="form-control" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label required">Date de publication</label>
+                                <input type="datetime-local" name="publish_date" class="form-control" required value="<?php echo date('Y-m-d\TH:i'); ?>">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label required">Contenu</label>
+                            <div class="rich-editor">
+                                <div class="editor-toolbar">
+                                    <button type="button" class="editor-btn" onclick="formatText('bold')" title="Gras">
+                                        <i class="fas fa-bold"></i>
+                                    </button>
+                                    <button type="button" class="editor-btn" onclick="formatText('italic')" title="Italique">
+                                        <i class="fas fa-italic"></i>
+                                    </button>
+                                    <button type="button" class="editor-btn" onclick="insertList('ul')" title="Liste à puces">
+                                        <i class="fas fa-list-ul"></i>
+                                    </button>
+                                    <button type="button" class="editor-btn" onclick="insertHeading()" title="Titre">
+                                        <i class="fas fa-heading"></i>
+                                    </button>
+                                </div>
+                                <div class="editor-content" contenteditable="true" id="newNewsContent">
+                                    <p>Contenu de l'actualité à compléter...</p>
+                                </div>
+                            </div>
+                            <input type="hidden" name="content" id="new_news_content">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label optional">Image (JPG, PNG, max 5MB)</label>
+                            <input type="file" name="image" class="form-control" accept="image/jpeg,image/png" onchange="previewImage(this, 'new_news_preview')">
+                            <img id="new_news_preview" class="image-preview" alt="Aperçu de l'image">
+                        </div>
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-plus"></i>
+                            Ajouter l'actualité
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Actualités existantes -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h3>Actualités existantes</h3>
+                    <div class="btn btn-outline" onclick="toggleNewsReorderMode()">
+                        <i class="fas fa-sort"></i>
+                        Mode réorganisation
+                    </div>
+                </div>
+
+                <div class="news-grid" id="newsGrid">
+                    <?php foreach ($news as $index => $article): ?>
+                        <div class="news-card sortable-item" data-id="<?php echo h($article['id']); ?>">
+                            <div class="order-indicator"><?php echo $index + 1; ?></div>
+                            <div class="drag-handle" style="display: none;">
+                                <i class="fas fa-grip-vertical"></i>
+                            </div>
+                            
+                            <form method="POST" enctype="multipart/form-data" id="news-form-<?php echo h($article['id']); ?>">
+                                <input type="hidden" name="action" value="update_news">
+                                <input type="hidden" name="news_id" value="<?php echo h($article['id']); ?>">
+                                <input type="hidden" name="csrf_token" value="<?php echo generateCSRFToken(); ?>">
+                                
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                                    <h4><?php echo h($article['title']); ?></h4>
+                                    <form method="POST" style="display: inline;" onsubmit="return confirm('Voulez-vous vraiment supprimer cette actualité ?');">
+                                        <input type="hidden" name="action" value="delete_news">
+                                        <input type="hidden" name="news_id" value="<?php echo h($article['id']); ?>">
+                                        <input type="hidden" name="csrf_token" value="<?php echo generateCSRFToken(); ?>">
+                                        <button type="submit" class="btn btn-mini btn-danger">
+                                            <i class="fas fa-trash"></i>
+                                            Supprimer
+                                        </button>
+                                    </form>
+                                </div>
+
+                                <?php if (!empty($article['image_path'])): ?>
+                                    <img src="<?php echo h($article['image_path']); ?>" alt="<?php echo h($article['title']); ?>" class="news-image">
+                                <?php endif; ?>
+                                <img id="preview_<?php echo h($article['id']); ?>" class="image-preview" alt="Aperçu de la nouvelle image">
+
+                                <div class="form-group">
+                                    <label class="form-label required">Titre</label>
+                                    <input type="text" name="title" class="form-control" value="<?php echo h($article['title']); ?>" required>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="form-label required">Date de publication</label>
+                                    <input type="datetime-local" name="publish_date" class="form-control" value="<?php echo date('Y-m-d\TH:i', strtotime($article['publish_date'])); ?>" required>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="form-label required">Contenu</label>
+                                    <div class="rich-editor">
+                                        <div class="editor-toolbar">
+                                            <button type="button" class="editor-btn" onclick="formatText('bold')" title="Gras">
+                                                <i class="fas fa-bold"></i>
+                                            </button>
+                                            <button type="button" class="editor-btn" onclick="formatText('italic')" title="Italique">
+                                                <i class="fas fa-italic"></i>
+                                            </button>
+                                            <button type="button" class="editor-btn" onclick="insertList('ul')" title="Liste à puces">
+                                                <i class="fas fa-list-ul"></i>
+                                            </button>
+                                            <button type="button" class="editor-btn" onclick="insertHeading()" title="Titre">
+                                                <i class="fas fa-heading"></i>
+                                            </button>
+                                        </div>
+                                        <div class="editor-content" contenteditable="true" data-news-id="<?php echo h($article['id']); ?>">
+                                            <?php echo !empty($article['content']) ? $article['content'] : '<p>Contenu à compléter...</p>'; ?>
+                                        </div>
+                                    </div>
+                                    <input type="hidden" name="content" id="news_content_<?php echo h($article['id']); ?>">
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="form-label optional">Nouvelle image (JPG, PNG, max 5MB)</label>
+                                    <input type="file" name="image" class="form-control" accept="image/jpeg,image/png" onchange="previewImage(this, 'preview_<?php echo h($article['id']); ?>')">
                                 </div>
 
                                 <button type="submit" class="btn btn-success">
@@ -1083,8 +1306,9 @@
                 <h3>Modifier le contenu</h3>
                 <button class="modal-close" onclick="closeEditModal()">&times;</button>
             </div>
-            <form method="POST" id="editForm">
+            <form method="POST" id="edit-content-form">
                 <input type="hidden" name="action" value="update_content">
+                <input type="hidden" name="csrf_token" value="<?php echo generateCSRFToken(); ?>">
                 <input type="hidden" id="editSection" name="content_section">
                 <input type="hidden" id="editKey" name="content_key">
                 
@@ -1099,7 +1323,7 @@
                 </div>
                 
                 <div class="form-group">
-                    <label class="form-label">Valeur</label>
+                    <label class="form-label required">Valeur</label>
                     <textarea id="editValue" name="new_value" class="form-control textarea-lg" required></textarea>
                 </div>
                 
@@ -1119,18 +1343,19 @@
         // Variables globales
         let reorderMode = false;
         let teamReorderMode = false;
+        let newsReorderMode = false;
         let servicesSortable = null;
         let teamSortable = null;
+        let newsSortable = null;
 
         // Navigation par onglets
         function openTab(evt, tabName) {
-            var i, tabcontent, tablinks;
-            tabcontent = document.getElementsByClassName("tab-content");
-            for (i = 0; i < tabcontent.length; i++) {
+            const tabcontent = document.getElementsByClassName("tab-content");
+            for (let i = 0; i < tabcontent.length; i++) {
                 tabcontent[i].classList.remove("active");
             }
-            tablinks = document.getElementsByClassName("tab-button");
-            for (i = 0; i < tablinks.length; i++) {
+            const tablinks = document.getElementsByClassName("tab-button");
+            for (let i = 0; i < tablinks.length; i++) {
                 tablinks[i].classList.remove("active");
             }
             document.getElementById(tabName).classList.add("active");
@@ -1180,43 +1405,19 @@
             document.getElementById('editModal').style.display = 'none';
         }
 
-        // Gestionnaire de soumission du formulaire d'édition
-        document.getElementById('editForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const formData = new FormData();
-            formData.append('action', 'update_content');
-            
-            const section = document.getElementById('editSection').value;
-            const key = document.getElementById('editKey').value;
-            const value = document.getElementById('editValue').value;
-            
-            formData.append(`content[${section}][${key}]`, value);
-            
-            fetch(window.location.href, {
-                method: 'POST',
-                body: formData
-            }).then(response => {
-                if (response.ok) {
-                    location.reload();
-                } else {
-                    alert('Erreur lors de la sauvegarde');
-                }
-            }).catch(error => {
-                console.error('Error:', error);
-                alert('Erreur lors de la sauvegarde');
-            });
-        });
-
         // Gestion des couleurs
-        function updateColorPreview(input, serviceId) {
-            const preview = document.getElementById('color_preview_' + serviceId);
+        function updateColorPreview(input, id) {
+            const preview = document.getElementById('color_preview_' + id);
             preview.style.background = input.value;
+            const iconInput = input.closest('form').querySelector('input[name="icon"]');
+            if (iconInput) {
+                preview.querySelector('i').className = iconInput.value;
+            }
         }
 
         function updateAddColorPreview(input) {
             const preview = document.getElementById('add_color_preview');
-            const iconInput = document.querySelector('input[name="icon"]');
+            const iconInput = input.closest('form').querySelector('input[name="icon"]');
             preview.style.background = input.value;
             if (iconInput) {
                 preview.querySelector('i').className = iconInput.value;
@@ -1226,6 +1427,7 @@
         // Éditeur riche
         function formatText(command) {
             document.execCommand(command, false, null);
+            document.activeElement.focus();
         }
 
         function insertList(type) {
@@ -1234,6 +1436,7 @@
             } else {
                 document.execCommand('insertOrderedList', false, null);
             }
+            document.activeElement.focus();
         }
 
         function insertHeading() {
@@ -1243,13 +1446,14 @@
             } else {
                 document.execCommand('insertHTML', false, '<h3>Nouveau titre</h3><p></p>');
             }
+            document.activeElement.focus();
         }
 
         function saveServiceContent(serviceId) {
             const editorContent = document.querySelector(`[data-service-id="${serviceId}"]`);
             const hiddenInput = document.getElementById(`detailed_content_${serviceId}`);
             if (editorContent && hiddenInput) {
-                hiddenInput.value = editorContent.innerHTML;
+                hiddenInput.value = editorContent.innerHTML.trim();
             }
         }
 
@@ -1257,20 +1461,50 @@
             const editorContent = document.getElementById('newServiceContent');
             const hiddenInput = document.getElementById('new_detailed_content');
             if (editorContent && hiddenInput) {
-                hiddenInput.value = editorContent.innerHTML;
+                hiddenInput.value = editorContent.innerHTML.trim();
             }
         }
 
-        // Prévisualisation d'images
+        function saveNewsContent(newsId) {
+            const editorContent = document.querySelector(`[data-news-id="${newsId}"]`);
+            const hiddenInput = document.getElementById(`news_content_${newsId}`);
+            if (editorContent && hiddenInput) {
+                hiddenInput.value = editorContent.innerHTML.trim();
+            }
+        }
+
+        function saveNewNewsContent() {
+            const editorContent = document.getElementById('newNewsContent');
+            const hiddenInput = document.getElementById('new_news_content');
+            if (editorContent && hiddenInput) {
+                hiddenInput.value = editorContent.innerHTML.trim();
+            }
+        }
+
+        // Prévisualisation d'images avec validation
         function previewImage(input, previewId) {
             const preview = document.getElementById(previewId);
+            const maxSize = 5 * 1024 * 1024; // 5MB
             if (input.files && input.files[0]) {
+                const file = input.files[0];
+                if (!['image/jpeg', 'image/png'].includes(file.type)) {
+                    alert('Erreur : Seuls les fichiers JPG et PNG sont acceptés.');
+                    input.value = '';
+                    preview.classList.remove('show');
+                    return;
+                }
+                if (file.size > maxSize) {
+                    alert('Erreur : Le fichier est trop volumineux. Taille maximale : 5MB.');
+                    input.value = '';
+                    preview.classList.remove('show');
+                    return;
+                }
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     preview.src = e.target.result;
                     preview.classList.add('show');
                 };
-                reader.readAsDataURL(input.files[0]);
+                reader.readAsDataURL(file);
             } else {
                 preview.classList.remove('show');
             }
@@ -1284,12 +1518,10 @@
             const orderIndicators = document.querySelectorAll('#servicesGrid .order-indicator');
             
             if (reorderMode) {
-                // Activer le mode réorganisation
                 grid.style.opacity = '0.8';
                 dragHandles.forEach(handle => handle.style.display = 'block');
                 orderIndicators.forEach(indicator => indicator.style.display = 'flex');
                 
-                // Initialiser Sortable
                 servicesSortable = new Sortable(grid, {
                     animation: 150,
                     handle: '.drag-handle',
@@ -1299,10 +1531,8 @@
                     }
                 });
                 
-                // Changer le texte du bouton
                 document.querySelector('[onclick="toggleReorderMode()"]').innerHTML = '<i class="fas fa-check"></i> Terminer la réorganisation';
             } else {
-                // Désactiver le mode réorganisation
                 grid.style.opacity = '1';
                 dragHandles.forEach(handle => handle.style.display = 'none');
                 
@@ -1350,6 +1580,41 @@
             }
         }
 
+        // Mode réorganisation des actualités
+        function toggleNewsReorderMode() {
+            newsReorderMode = !newsReorderMode;
+            const grid = document.getElementById('newsGrid');
+            const dragHandles = document.querySelectorAll('#newsGrid .drag-handle');
+            const orderIndicators = document.querySelectorAll('#newsGrid .order-indicator');
+            
+            if (newsReorderMode) {
+                grid.style.opacity = '0.8';
+                dragHandles.forEach(handle => handle.style.display = 'block');
+                orderIndicators.forEach(indicator => indicator.style.display = 'flex');
+                
+                newsSortable = new Sortable(grid, {
+                    animation: 150,
+                    handle: '.drag-handle',
+                    ghostClass: 'sortable-ghost',
+                    onEnd: function(evt) {
+                        updateNewsOrder();
+                    }
+                });
+                
+                document.querySelector('[onclick="toggleNewsReorderMode()"]').innerHTML = '<i class="fas fa-check"></i> Terminer la réorganisation';
+            } else {
+                grid.style.opacity = '1';
+                dragHandles.forEach(handle => handle.style.display = 'none');
+                
+                if (newsSortable) {
+                    newsSortable.destroy();
+                    newsSortable = null;
+                }
+                
+                document.querySelector('[onclick="toggleNewsReorderMode()"]').innerHTML = '<i class="fas fa-sort"></i> Mode réorganisation';
+            }
+        }
+
         // Mise à jour de l'ordre des services
         function updateServicesOrder() {
             const items = document.querySelectorAll('#servicesGrid .sortable-item');
@@ -1359,27 +1624,27 @@
                 const id = item.dataset.id;
                 orders[id] = index + 1;
                 
-                // Mettre à jour l'indicateur visuel
                 const indicator = item.querySelector('.order-indicator');
                 if (indicator) {
                     indicator.textContent = index + 1;
                 }
             });
             
-            // Envoyer la nouvelle ordre au serveur
             const formData = new FormData();
             formData.append('action', 'reorder_services');
             formData.append('orders', JSON.stringify(orders));
+            formData.append('csrf_token', '<?php echo generateCSRFToken(); ?>');
             
             fetch(window.location.href, {
                 method: 'POST',
                 body: formData
-            }).then(response => {
-                if (!response.ok) {
-                    console.error('Erreur lors de la mise à jour de l\'ordre');
+            }).then(response => response.json()).then(data => {
+                if (!data.success) {
+                    alert('Erreur: ' + data.message);
                 }
             }).catch(error => {
                 console.error('Error:', error);
+                alert('Erreur lors de la mise à jour de l\'ordre');
             });
         }
 
@@ -1401,81 +1666,174 @@
             const formData = new FormData();
             formData.append('action', 'reorder_team');
             formData.append('orders', JSON.stringify(orders));
+            formData.append('csrf_token', '<?php echo generateCSRFToken(); ?>');
             
             fetch(window.location.href, {
                 method: 'POST',
                 body: formData
-            }).then(response => {
-                if (!response.ok) {
-                    console.error('Erreur lors de la mise à jour de l\'ordre');
+            }).then(response => response.json()).then(data => {
+                if (!data.success) {
+                    alert('Erreur: ' + data.message);
                 }
             }).catch(error => {
                 console.error('Error:', error);
+                alert('Erreur lors de la mise à jour de l\'ordre');
+            });
+        }
+
+        // Mise à jour de l'ordre des actualités
+        function updateNewsOrder() {
+            const items = document.querySelectorAll('#newsGrid .sortable-item');
+            const orders = {};
+            
+            items.forEach((item, index) => {
+                const id = item.dataset.id;
+                orders[id] = index + 1;
+                
+                const indicator = item.querySelector('.order-indicator');
+                if (indicator) {
+                    indicator.textContent = index + 1;
+                }
+            });
+            
+            const formData = new FormData();
+            formData.append('action', 'reorder_news');
+            formData.append('orders', JSON.stringify(orders));
+            formData.append('csrf_token', '<?php echo generateCSRFToken(); ?>');
+            
+            fetch(window.location.href, {
+                method: 'POST',
+                body: formData
+            }).then(response => response.json()).then(data => {
+                if (!data.success) {
+                    alert('Erreur: ' + data.message);
+                }
+            }).catch(error => {
+                console.error('Error:', error);
+                alert('Erreur lors de la mise à jour de l\'ordre');
             });
         }
 
         // Auto-sauvegarde des contenus éditeur
         let autoSaveTimeout;
-        document.querySelectorAll('.editor-content').forEach(editor => {
-            editor.addEventListener('input', function() {
-                clearTimeout(autoSaveTimeout);
-                const serviceId = this.dataset.serviceId;
-                if (serviceId) {
-                    autoSaveTimeout = setTimeout(() => {
-                        // Stocker dans localStorage comme brouillon
-                        localStorage.setItem(`service_draft_${serviceId}`, this.innerHTML);
-                        console.log(`Brouillon sauvegardé pour le service ${serviceId}`);
-                    }, 2000);
-                }
+        function setupAutoSave() {
+            document.querySelectorAll('.editor-content').forEach(editor => {
+                editor.addEventListener('input', function() {
+                    clearTimeout(autoSaveTimeout);
+                    const serviceId = this.dataset.serviceId;
+                    const newsId = this.dataset.newsId;
+                    if (serviceId || newsId) {
+                        autoSaveTimeout = setTimeout(() => {
+                            const key = serviceId ? `service_draft_${serviceId}` : `news_draft_${newsId}`;
+                            localStorage.setItem(key, this.innerHTML);
+                            console.log(`Brouillon sauvegardé pour ${serviceId ? 'service' : 'actualité'} ${serviceId || newsId}`);
+                        }, 2000);
+                    }
+                });
             });
-        });
+        }
 
-        // Gestionnaire de soumission pour tous les formulaires
-        document.querySelectorAll('form').forEach(form => {
-            form.addEventListener('submit', function(e) {
-                const editorContent = this.querySelector('.editor-content');
-                if (editorContent) {
-                    const serviceId = editorContent.dataset.serviceId;
-                    const hiddenInput = this.querySelector(`input[name="detailed_content"]`);
-                    if (hiddenInput) {
-                        hiddenInput.value = editorContent.innerHTML;
-                    }
+        // Validation des formulaires
+        function setupFormValidation() {
+            const forms = document.querySelectorAll('#general-content-form, #add-content-form, #add-service-form, #add-team-form, #add-news-form, form[id^="service-form-"], form[id^="team-form-"], form[id^="news-form-"]');
+            forms.forEach(form => {
+                form.addEventListener('submit', function(e) {
+                    e.preventDefault();
                     
-                    // Supprimer le brouillon après sauvegarde réussie
-                    if (serviceId) {
-                        localStorage.removeItem(`service_draft_${serviceId}`);
+                    // Validate required fields
+                    const requiredFields = form.querySelectorAll('input[required], textarea[required]');
+                    let isValid = true;
+                    requiredFields.forEach(field => {
+                        if (!field.value.trim()) {
+                            isValid = false;
+                            field.classList.add('error');
+                            field.nextElementSibling?.classList.add('error');
+                        } else {
+                            field.classList.remove('error');
+                            field.nextElementSibling?.classList.remove('error');
+                        }
+                    });
+
+                    // Handle rich editor content
+                    const editorContent = form.querySelector('.editor-content');
+                    if (editorContent) {
+                        const serviceId = editorContent.dataset.serviceId;
+                        const newsId = editorContent.dataset.newsId;
+                        const hiddenInput = form.querySelector(`input[name="${serviceId ? 'detailed_content' : 'content'}"]`);
+                        if (hiddenInput) {
+                            const content = editorContent.innerHTML.trim();
+                            // Check if content is empty or default placeholder
+                            if (!content || content === '<p>Contenu de l\'actualité à compléter...</p>' || content === '<p>Contenu détaillé à compléter...</p>') {
+                                isValid = false;
+                                editorContent.classList.add('error');
+                                alert('Le contenu de l\'éditeur ne peut pas être vide ou contenir le texte par défaut.');
+                            } else {
+                                hiddenInput.value = content;
+                                editorContent.classList.remove('error');
+                                if (serviceId) {
+                                    localStorage.removeItem(`service_draft_${serviceId}`);
+                                } else if (newsId) {
+                                    localStorage.removeItem(`news_draft_${newsId}`);
+                                }
+                            }
+                        }
                     }
-                }
-                
-                // Ajouter un indicateur de chargement
-                const submitBtn = this.querySelector('button[type="submit"]');
-                if (submitBtn && !submitBtn.disabled) {
-                    const originalText = submitBtn.innerHTML;
-                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sauvegarde...';
-                    submitBtn.disabled = true;
-                    
-                    // Réactiver après un délai (au cas où la page ne se recharge pas)
-                    setTimeout(() => {
-                        submitBtn.innerHTML = originalText;
-                        submitBtn.disabled = false;
-                    }, 5000);
-                }
+
+                    if (!isValid) {
+                        alert('Veuillez remplir tous les champs requis et vérifier le contenu de l\'éditeur.');
+                        return;
+                    }
+
+                    const submitBtn = form.querySelector('button[type="submit"]');
+                    if (submitBtn && !submitBtn.disabled) {
+                        const originalText = submitBtn.innerHTML;
+                        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sauvegarde...';
+                        submitBtn.disabled = true;
+
+                        // Log FormData for debugging
+                        const formData = new FormData(form);
+                        for (let [key, value] of formData.entries()) {
+                            console.log(`${key}: ${value}`);
+                        }
+
+                        fetch(window.location.href, {
+                            method: 'POST',
+                            body: formData
+                        }).then(response => response.json()).then(data => {
+                            submitBtn.innerHTML = originalText;
+                            submitBtn.disabled = false;
+                            if (data.success) {
+                                location.reload();
+                            } else {
+                                alert('Erreur: ' + data.message);
+                            }
+                        }).catch(error => {
+                            submitBtn.innerHTML = originalText;
+                            submitBtn.disabled = false;
+                            console.error('Erreur:', error);
+                            alert('Erreur lors de la sauvegarde. Veuillez vérifier votre connexion et réessayer.');
+                        });
+                    }
+                });
             });
-        });
+        }
 
         // Restauration des brouillons au chargement
         document.addEventListener('DOMContentLoaded', function() {
+            // Restore drafts
             document.querySelectorAll('.editor-content').forEach(editor => {
                 const serviceId = editor.dataset.serviceId;
-                if (serviceId) {
-                    const draft = localStorage.getItem(`service_draft_${serviceId}`);
-                    if (draft && confirm(`Un brouillon a été trouvé pour ce service. Voulez-vous le restaurer ?`)) {
+                const newsId = editor.dataset.newsId;
+                const key = serviceId ? `service_draft_${serviceId}` : `news_draft_${newsId}`;
+                if (key) {
+                    const draft = localStorage.getItem(key);
+                    if (draft && confirm(`Un brouillon a été trouvé pour ${serviceId ? 'ce service' : 'cette actualité'}. Voulez-vous le restaurer ?`)) {
                         editor.innerHTML = draft;
                     }
                 }
             });
-            
-            // Initialiser les prévisualisations de couleur
+
+            // Initialize color previews
             document.querySelectorAll('input[type="color"]').forEach(input => {
                 const serviceMatch = input.getAttribute('onchange');
                 if (serviceMatch && serviceMatch.includes('updateColorPreview')) {
@@ -1485,8 +1843,26 @@
                     }
                 }
             });
-        });
 
+            // Setup form validation
+            setupFormValidation();
+
+            // Setup auto-save
+            setupAutoSave();
+
+            // Update icon previews dynamically
+            document.addEventListener('input', function(e) {
+                if (e.target.name === 'icon') {
+                    const form = e.target.closest('form');
+                    const colorPreview = form.querySelector('.color-preview i');
+                    if (colorPreview) {
+                        colorPreview.className = e.target.value;
+                    }
+                }
+            });
+
+            console.log('Interface d\'administration avancée chargée avec succès');
+        });
         // Fermeture du modal avec Escape
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
@@ -1500,19 +1876,6 @@
                 closeEditModal();
             }
         });
-
-        // Mise à jour dynamique de l'icône dans l'aperçu
-        document.addEventListener('input', function(e) {
-            if (e.target.name === 'icon') {
-                const form = e.target.closest('form');
-                const colorPreview = form.querySelector('.color-preview i');
-                if (colorPreview) {
-                    colorPreview.className = e.target.value;
-                }
-            }
-        });
-
-        console.log('Interface d\'administration avancée chargée avec succès');
     </script>
 </body>
 </html>
