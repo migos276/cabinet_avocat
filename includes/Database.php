@@ -67,7 +67,7 @@ class Database {
                     title VARCHAR(255) NOT NULL,
                     description TEXT NOT NULL,
                     icon VARCHAR(50) NOT NULL,
-                    color VARCHAR(7) DEFAULT '#3b82f6',
+                    color VARCHAR(255) DEFAULT '#3b82f6',
                     order_position INTEGER DEFAULT 0,
                     is_active INTEGER DEFAULT 1,
                     detailed_content TEXT,
@@ -135,6 +135,17 @@ class Database {
             if (!$has_order_position) {
                 $this->connection->exec("ALTER TABLE news ADD COLUMN order_position INTEGER");
                 $this->connection->exec("UPDATE news SET order_position = id WHERE order_position IS NULL");
+            }
+
+            // Fix color column length if needed
+            $service_columns = $this->connection->query("PRAGMA table_info(services)")->fetchAll(PDO::FETCH_ASSOC);
+            foreach ($service_columns as $col) {
+                if ($col['name'] === 'color' && $col['type'] === 'VARCHAR(7)') {
+                    $this->connection->exec("ALTER TABLE services RENAME COLUMN color TO old_color;");
+                    $this->connection->exec("ALTER TABLE services ADD COLUMN color VARCHAR(255) DEFAULT '#3b82f6';");
+                    $this->connection->exec("UPDATE services SET color = old_color;");
+                    $this->connection->exec("ALTER TABLE services DROP COLUMN old_color;");
+                }
             }
 
             $this->createIndexes();

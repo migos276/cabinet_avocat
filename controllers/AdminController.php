@@ -99,6 +99,7 @@ class AdminController {
     public function login() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!verifyCSRFToken($_POST['csrf_token'] ?? '')) {
+                error_log("CSRF token validation failed in login");
                 $error = 'Erreur de validation CSRF';
                 include 'views/admin/login.php';
                 return;
@@ -107,12 +108,21 @@ class AdminController {
             $username = $_POST['username'] ?? '';
             $password = $_POST['password'] ?? '';
 
-            if ($username === ADMIN_USERNAME && password_verify($password, ADMIN_PASSWORD)) {
+            $stmt = $this->db->prepare("SELECT * FROM admin_users WHERE username = ?");
+            $stmt->execute([$username]);
+            $user = $stmt->fetch();
+
+            if ($user && $user['is_active'] && password_verify($password, $user['password'])) {
                 $_SESSION['admin_logged_in'] = true;
+                $_SESSION['admin_id'] = $user['id'];
+                $updateStmt = $this->db->prepare("UPDATE admin_users SET last_login = datetime('now'), updated_at = datetime('now') WHERE id = ?");
+                $updateStmt->execute([$user['id']]);
+                error_log("Login successful for user: $username");
                 header('Location: /admin/dashboard');
                 exit;
             } else {
-                $error = 'Identifiants incorrects';
+                error_log("Login failed for user: $username - Invalid credentials or inactive account");
+                $error = 'Identifiants incorrects ou compte inactif';
             }
         }
 

@@ -143,20 +143,21 @@
             margin-right: 0.5rem;
         }
 
- .btn {
-    display: inline-flex;
-    align-items: center;
-    padding: 0.6rem;
-    padding-left: 1.8rem; /* Espacement à gauche */
-    padding-right: 1.8rem; /* Espacement à droite */
-    border-radius: 0.6rem;
-    font-weight: 600;
-    text-decoration: none;
-    transition: all 0.3s ease;
-    border: none;
-    cursor: pointer;
-    font-size: 0.9rem;
-}
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.6rem;
+            padding-left: 1.8rem;
+            padding-right: 1.8rem;
+            border-radius: 0.6rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
         .btn-primary {
             background: linear-gradient(135deg, #2563eb, #1d4ed8);
             color: white;
@@ -452,7 +453,7 @@
             line-height: 1.6;
         }
 
-        /* Contact Form */
+        /* Contact Section avec Rendez-vous intégré */
         .contact-section {
             background: var(--gradient-bg);
         }
@@ -461,14 +462,12 @@
             background: white;
             border-radius: 20px;
             padding: 3rem;
-            box-shadow: 0 20px 60px var(--shadow-light);
-            max-width: 800px;
-            margin: 0 auto;
+            box-shadow: 0 10px 30px var(--shadow-medium);
         }
 
         .form-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            grid-template-columns: 1fr 1fr;
             gap: 1.5rem;
             margin-bottom: 1.5rem;
         }
@@ -486,24 +485,342 @@
 
         .form-control {
             width: 100%;
-            padding: 0.75rem 1rem;
-            border: 2px solid #e5e7eb;
-            border-radius: 10px;
+            padding: 0.75rem;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
             font-size: 1rem;
             transition: all 0.3s ease;
-            background: #f9fafb;
+            box-sizing: border-box;
         }
 
         .form-control:focus {
             outline: none;
             border-color: var(--secondary-blue);
-            background: white;
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
         }
 
         .form-control-lg {
-            padding: 1rem 1.25rem;
+            padding: 1rem;
             font-size: 1.1rem;
+        }
+
+        /* Styles pour la section rendez-vous */
+        .appointment-section {
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+            border-radius: 15px;
+            padding: 2rem;
+            margin: 2rem 0;
+            border: 2px solid #e0f2fe;
+        }
+
+        .appointment-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .appointment-header h3 {
+            color: var(--primary-blue);
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .appointment-header p {
+            color: var(--text-light);
+            font-size: 1rem;
+        }
+
+        .appointment-toggle {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            justify-content: center;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 60px;
+            height: 30px;
+            background: #e5e7eb;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .toggle-switch.active {
+            background: var(--secondary-blue);
+        }
+
+        .toggle-slider {
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 24px;
+            height: 24px;
+            background: white;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .toggle-switch.active .toggle-slider {
+            transform: translateX(30px);
+        }
+
+        .toggle-label {
+            font-weight: 600;
+            color: var(--text-dark);
+        }
+
+        .appointment-details {
+            display: none;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.4s ease;
+        }
+
+        .appointment-details.show {
+            display: block;
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .appointment-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .appointment-info {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .info-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .info-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.2rem;
+        }
+
+        .info-icon.price {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+        }
+
+        .info-icon.duration {
+            background: linear-gradient(135deg, #10b981, #059669);
+        }
+
+        .info-title {
+            font-weight: 700;
+            color: var(--text-dark);
+            margin: 0;
+        }
+
+        .info-content {
+            color: var(--text-light);
+            line-height: 1.6;
+        }
+
+        .price-highlight {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--accent-gold);
+        }
+
+        .payment-options {
+            background: white;
+            border-radius: 15px;
+            padding: 2rem;
+            margin: 2rem 0;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .payment-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+
+        .payment-methods {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .payment-option {
+            border: 2px solid #e5e7eb;
+            border-radius: 15px;
+            padding: 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            position: relative;
+        }
+
+        .payment-option input[type="radio"] {
+            display: none;
+        }
+
+        .payment-option:hover {
+            border-color: var(--secondary-blue);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.15);
+        }
+
+        .payment-option.selected {
+            border-color: var(--secondary-blue);
+            background: rgba(59, 130, 246, 0.05);
+        }
+
+        .payment-icon {
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 1rem;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.5rem;
+        }
+
+        .payment-icon.online {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+        }
+
+        .payment-icon.onsite {
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+        }
+
+        .payment-label {
+            font-weight: 700;
+            color: var(--text-dark);
+            margin-bottom: 0.5rem;
+        }
+
+        .payment-description {
+            font-size: 0.9rem;
+            color: var(--text-light);
+            line-height: 1.5;
+        }
+
+        .payment-note {
+            background: #fef3c7;
+            border: 1px solid #f59e0b;
+            border-radius: 10px;
+            padding: 1rem;
+            margin-top: 1rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+        }
+
+        .payment-note i {
+            color: #f59e0b;
+            margin-top: 0.2rem;
+        }
+
+        .payment-note p {
+            margin: 0;
+            color: #92400e;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        .stripe-section {
+            display: none;
+            background: white;
+            border-radius: 15px;
+            padding: 2rem;
+            margin: 1rem 0;
+            border: 2px solid #e0f2fe;
+        }
+
+        .stripe-section.show {
+            display: block;
+            animation: slideDown 0.4s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .stripe-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .stripe-logo {
+            background: #6772e5;
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .btn-submit-appointment {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white;
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            justify-content: center;
+            width: 100%;
+        }
+
+        .btn-submit-appointment:hover {
+            background: linear-gradient(135deg, #d97706, #b45309);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(245, 158, 11, 0.4);
+        }
+
+        .btn-submit-appointment:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
         }
 
         /* Footer */
@@ -1062,6 +1379,179 @@
             text-align: center;
         }
 
+        /* Team Section Horizontal Scroll */
+        .team-container {
+            position: relative;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 3rem;
+            display: flex;
+            align-items: center;
+        }
+
+        .team-grid {
+            display: flex;
+            overflow-x: auto;
+            scroll-snap-type: x mandatory;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: thin;
+            scrollbar-color: var(--secondary-blue) var(--gray-100);
+            gap: 2rem;
+            padding: 1rem 0;
+        }
+
+        .team-grid::-webkit-scrollbar {
+            height: 8px;
+        }
+
+        .team-grid::-webkit-scrollbar-track {
+            background: var(--gray-100);
+            border-radius: 4px;
+        }
+
+        .team-grid::-webkit-scrollbar-thumb {
+            background: var(--secondary-blue);
+            border-radius: 4px;
+        }
+
+        .team-grid::-webkit-scrollbar-thumb:hover {
+            background: var(--primary-blue);
+        }
+
+        .team-card {
+            flex: 0 0 300px;
+            background: white;
+            border-radius: 20px;
+            padding: 2.5rem;
+            text-align: center;
+            box-shadow: 0 5px 15px var(--shadow-light);
+            transition: all 0.3s ease;
+            scroll-snap-align: center;
+            min-width: 300px;
+        }
+
+        .team-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 30px var(--shadow-medium);
+        }
+
+        .team-image {
+            width: 100%;
+            height: 250px;
+            object-fit: cover;
+            border-radius: 15px;
+            margin-bottom: 1.5rem;
+        }
+
+        .team-position {
+            color: var(--secondary-blue);
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .team-description {
+            color: var(--text-light);
+            line-height: 1.6;
+        }
+
+        .team-nav-btn {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: var(--white);
+            border: 2px solid var(--border-color);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px var(--shadow-light);
+            z-index: 10;
+        }
+
+        .team-nav-prev {
+            left: 0;
+        }
+
+        .team-nav-next {
+            right: 0;
+        }
+
+        .team-nav-btn:hover {
+            background: var(--secondary-blue);
+            color: var(--white);
+            border-color: var(--secondary-blue);
+            transform: translateY(-50%) scale(1.1);
+        }
+
+        .team-nav-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .team-nav-btn i {
+            font-size: 1.2rem;
+        }
+
+        /* News Section Styles */
+        .news-section {
+            padding: 80px 0;
+            background: var(--gradient-bg);
+        }
+
+        .news-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        .news-card {
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px var(--shadow-light);
+            transition: all 0.3s ease;
+        }
+
+        .news-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 30px var(--shadow-medium);
+        }
+
+        .news-image {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+        }
+
+        .news-content {
+            padding: 2rem;
+        }
+
+        .news-date {
+            font-size: 0.9rem;
+            color: var(--text-light);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .news-title {
+            font-size: 1.5rem;
+            color: var(--primary-blue);
+            margin-bottom: 1rem;
+        }
+
+        .news-excerpt {
+            color: var(--text-dark);
+            line-height: 1.6;
+            margin-bottom: 1.5rem;
+        }
+
         /* Responsive Design */
         @media (max-width: 768px) {
             .navbar-nav {
@@ -1155,6 +1645,54 @@
                 height: auto !important;
                 max-height: 60vh !important;
             }
+
+            .team-container {
+                padding: 0 2rem;
+            }
+
+            .team-grid {
+                gap: 1.5rem;
+            }
+
+            .team-card {
+                flex: 0 0 280px;
+                min-width: 280px;
+            }
+
+            .team-nav-btn {
+                width: 35px;
+                height: 35px;
+            }
+
+            .team-nav-btn i {
+                font-size: 1rem;
+            }
+
+            .news-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .news-content {
+                padding: 1.5rem;
+            }
+            
+            .news-title {
+                font-size: 1.3rem;
+            }
+
+            .appointment-grid,
+            .payment-methods,
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .appointment-section {
+                padding: 1.5rem;
+            }
+            
+            .payment-options {
+                padding: 1.5rem;
+            }
         }
 
         @media (max-width: 480px) {
@@ -1186,6 +1724,25 @@
             .commitment-stats {
                 grid-template-columns: 1fr;
             }
+
+            .team-container {
+                padding: 0 1rem;
+            }
+
+            .team-grid {
+                gap: 1rem;
+            }
+
+            .team-card {
+                flex: 0 0 260px;
+                min-width: 260px;
+                padding: 1.5rem;
+            }
+
+            .team-nav-btn {
+                width: 30px;
+                height: 30px;
+            }
         }
 
         /* Utility Classes */
@@ -1195,239 +1752,6 @@
         .mb-8 { margin-bottom: 2rem; }
         .max-w-4xl { max-width: 56rem; }
         .mx-auto { margin-left: auto; margin-right: auto; }
-    /* Team Section Horizontal Scroll */
-.team-container {
-    position: relative;
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 0 3rem;
-    display: flex;
-    align-items: center;
-}
-
-.team-grid {
-    display: flex;
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: thin;
-    scrollbar-color: var(--secondary-blue) var(--gray-100);
-    gap: 2rem;
-    padding: 1rem 0;
-}
-
-.team-grid::-webkit-scrollbar {
-    height: 8px;
-}
-
-.team-grid::-webkit-scrollbar-track {
-    background: var(--gray-100);
-    border-radius: 4px;
-}
-
-.team-grid::-webkit-scrollbar-thumb {
-    background: var(--secondary-blue);
-    border-radius: 4px;
-}
-
-.team-grid::-webkit-scrollbar-thumb:hover {
-    background: var(--primary-blue);
-}
-
-.team-card {
-    flex: 0 0 300px;
-    background: white;
-    border-radius: 20px;
-    padding: 2.5rem;
-    text-align: center;
-    box-shadow: 0 5px 15px var(--shadow-light);
-    transition: all 0.3s ease;
-    scroll-snap-align: center;
-    min-width: 300px;
-}
-
-.team-card:hover {
-    transform: translateY(-10px);
-    box-shadow: 0 15px 30px var(--shadow-medium);
-}
-
-.team-image {
-    width: 100%;
-    height: 250px;
-    object-fit: cover;
-    border-radius: 15px;
-    margin-bottom: 1.5rem;
-}
-
-.team-position {
-    color: var(--secondary-blue);
-    font-weight: 600;
-    margin-bottom: 0.5rem;
-}
-
-.team-description {
-    color: var(--text-light);
-    line-height: 1.6;
-}
-
-.team-nav-btn {
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    background: var(--white);
-    border: 2px solid var(--border-color);
-    border-radius: 50%;
-    width: 40px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 2px 8px var(--shadow-light);
-    z-index: 10;
-}
-
-.team-nav-prev {
-    left: 0;
-}
-
-.team-nav-next {
-    right: 0;
-}
-
-.team-nav-btn:hover {
-    background: var(--secondary-blue);
-    color: var(--white);
-    border-color: var(--secondary-blue);
-    transform: translateY(-50%) scale(1.1);
-}
-
-.team-nav-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-.team-nav-btn i {
-    font-size: 1.2rem;
-}
-
-/* Responsive Design */
-@media (max-width: 768px) {
-    .team-container {
-        padding: 0 2rem;
-    }
-
-    .team-grid {
-        gap: 1.5rem;
-    }
-
-    .team-card {
-        flex: 0 0 280px;
-        min-width: 280px;
-    }
-
-    .team-nav-btn {
-        width: 35px;
-        height: 35px;
-    }
-
-    .team-nav-btn i {
-        font-size: 1rem;
-    }
-}
-
-@media (max-width: 480px) {
-    .team-container {
-        padding: 0 1rem;
-    }
-
-    .team-grid {
-        gap: 1rem;
-    }
-
-    .team-card {
-        flex: 0 0 260px;
-        min-width: 260px;
-        padding: 1.5rem;
-    }
-
-    .team-nav-btn {
-        width: 30px;
-        height: 30px;
-    }
-}
-
-/* News Section Styles */
-.news-section {
-    padding: 80px 0;
-    background: var(--gradient-bg);
-}
-
-.news-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 2rem;
-}
-
-.news-card {
-    background: white;
-    border-radius: 20px;
-    overflow: hidden;
-    box-shadow: 0 5px 15px var(--shadow-light);
-    transition: all 0.3s ease;
-}
-
-.news-card:hover {
-    transform: translateY(-10px);
-    box-shadow: 0 15px 30px var(--shadow-medium);
-}
-
-.news-image {
-    width: 100%;
-    height: 200px;
-    object-fit: cover;
-}
-
-.news-content {
-    padding: 2rem;
-}
-
-.news-date {
-    font-size: 0.9rem;
-    color: var(--text-light);
-    margin-bottom: 1rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.news-title {
-    font-size: 1.5rem;
-    color: var(--primary-blue);
-    margin-bottom: 1rem;
-}
-
-.news-excerpt {
-    color: var(--text-dark);
-    line-height: 1.6;
-    margin-bottom: 1.5rem;
-}
-
-@media (max-width: 768px) {
-    .news-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .news-content {
-        padding: 1.5rem;
-    }
-    
-    .news-title {
-        font-size: 1.3rem;
-    }
-}
-
     </style>
 </head>
 <body>
@@ -1656,6 +1980,7 @@
             </div>
         </div>
     </section>
+
     <!-- Team Section -->
     <section id="team" class="section" style="background: var(--gradient-bg);">
         <div class="container">
@@ -1727,7 +2052,7 @@
         </div>
     </section>
 
-    <!-- Contact Section -->
+    <!-- Contact Section avec Rendez-vous intégré -->
     <section id="contact" class="section contact-section">
         <div class="container">
             <div class="max-w-4xl mx-auto">
@@ -1770,6 +2095,7 @@
                                 </select>
                             </div>
                         </div>
+
                         <div class="form-group mb-8">
                             <label for="message" class="form-label">Décrivez votre situation *</label>
                             <textarea class="form-control form-control-lg" id="message" name="message" rows="5" required
@@ -1795,11 +2121,130 @@
                             </div>
                             <div class="file-preview" id="filePreview"></div>
                         </div>
+
+                        <!-- Section Rendez-vous intégrée -->
+                        <div class="appointment-section">
+                            <div class="appointment-header">
+                                <h3>Prendre un Rendez-vous</h3>
+                                <p>Consultation personnalisée avec nos experts</p>
+                            </div>
+
+                            <div class="appointment-toggle">
+                                <span class="toggle-label">Demander un rendez-vous</span>
+                                <div class="toggle-switch" id="appointmentToggle">
+                                    <div class="toggle-slider"></div>
+                                </div>
+                                <input type="hidden" name="appointment_requested" id="appointmentRequested" value="0">
+                            </div>
+
+                            <div class="appointment-details" id="appointmentDetails">
+                                <div class="appointment-grid">
+                                    <div class="appointment-info">
+                                        <div class="info-header">
+                                            <div class="info-icon price">
+                                                <i class="fas fa-euro-sign"></i>
+                                            </div>
+                                            <h4 class="info-title">Tarif Consultation</h4>
+                                        </div>
+                                        <div class="info-content">
+                                            <span class="price-highlight">150€</span>
+                                            <p>Consultation initiale d'une heure incluant l'analyse de votre dossier et nos premiers conseils.</p>
+                                        </div>
+                                    </div>
+
+                                    <div class="appointment-info">
+                                        <div class="info-header">
+                                            <div class="info-icon duration">
+                                                <i class="fas fa-clock"></i>
+                                            </div>
+                                            <h4 class="info-title">Durée & Format</h4>
+                                        </div>
+                                        <div class="info-content">
+                                            <p><strong>1 heure</strong> de consultation</p>
+                                            <p>En présentiel ou visioconférence selon votre préférence.</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="payment-options">
+                                    <h4 class="payment-title">Mode de Paiement</h4>
+                                    <div class="payment-methods">
+                                        <label class="payment-option" for="paymentOnsite">
+                                            <input type="radio" id="paymentOnsite" name="payment_method" value="onsite">
+                                            <div class="payment-icon onsite">
+                                                <i class="fas fa-building"></i>
+                                            </div>
+                                            <div class="payment-label">Paiement sur Place</div>
+                                            <div class="payment-description">
+                                                Payez directement lors de votre rendez-vous au cabinet par espèces, chèque ou carte bancaire.
+                                            </div>
+                                        </label>
+
+                                        <label class="payment-option" for="paymentOnline">
+                                            <input type="radio" id="paymentOnline" name="payment_method" value="online">
+                                            <div class="payment-icon online">
+                                                <i class="fas fa-credit-card"></i>
+                                            </div>
+                                            <div class="payment-label">Paiement Direct</div>
+                                            <div class="payment-description">
+                                                Payez immédiatement en ligne par carte bancaire pour confirmer votre rendez-vous.
+                                            </div>
+                                        </label>
+                                    </div>
+
+                                    <div class="payment-note">
+                                        <i class="fas fa-info-circle"></i>
+                                        <p>
+                                            <strong>Important :</strong> Pour le paiement direct, votre demande de rendez-vous ne sera envoyée qu'après validation du paiement. 
+                                            Vous recevrez une confirmation par email avec les créneaux disponibles.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <!-- Section Stripe pour paiement en ligne -->
+                                <div class="stripe-section" id="stripeSection">
+                                    <div class="stripe-title">
+                                        <i class="fas fa-lock"></i>
+                                        Paiement Sécurisé
+                                        <span class="stripe-logo">STRIPE</span>
+                                    </div>
+                                    
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label class="form-label">Numéro de carte</label>
+                                            <input type="text" class="form-control" id="cardNumber" placeholder="1234 5678 9012 3456" maxlength="19">
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">Date d'expiration</label>
+                                            <input type="text" class="form-control" id="cardExpiry" placeholder="MM/YY" maxlength="5">
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="form-row">
+                                        <div class="form-group">
+                                            <label class="form-label">Code CVC</label>
+                                            <input type="text" class="form-control" id="cardCvc" placeholder="123" maxlength="4">
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label">Nom sur la carte</label>
+                                            <input type="text" class="form-control" id="cardName" placeholder="Nom complet">
+                                        </div>
+                                    </div>
+                                    
+                                    <div style="margin-top: 1rem; padding: 1rem; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #28a745;">
+                                        <small style="color: #155724;">
+                                            <i class="fas fa-shield-alt"></i>
+                                            Vos informations de paiement sont sécurisées par chiffrement SSL et traitées par Stripe.
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                         
                         <div class="text-center">
-                            <button type="submit" class="btn btn-primary btn-lg" style="padding: 1rem 2rem;">
+                            <button type="submit" class="btn-submit-appointment" id="submitBtn">
                                 <i class="fas fa-paper-plane"></i>
-                                Demander une consultation
+                                <span id="submitText">Envoyer la demande</span>
                             </button>
                             <p style="color: var(--text-light); font-size: 0.9rem; margin-top: 1rem;">
                                 <i class="fas fa-shield-alt"></i>
@@ -1887,63 +2332,61 @@
 
     <script>
         function initializeTeamScroll() {
-    const teamGrid = document.querySelector('.team-grid');
-    const prevBtn = document.querySelector('.team-nav-prev');
-    const nextBtn = document.querySelector('.team-nav-next');
+            const teamGrid = document.querySelector('.team-grid');
+            const prevBtn = document.querySelector('.team-nav-prev');
+            const nextBtn = document.querySelector('.team-nav-next');
 
-    if (!teamGrid || !prevBtn || !nextBtn) return;
+            if (!teamGrid || !prevBtn || !nextBtn) return;
 
-    function updateButtonState() {
-        const scrollLeft = teamGrid.scrollLeft;
-        const maxScroll = teamGrid.scrollWidth - teamGrid.clientWidth;
+            function updateButtonState() {
+                const scrollLeft = teamGrid.scrollLeft;
+                const maxScroll = teamGrid.scrollWidth - teamGrid.clientWidth;
 
-        prevBtn.disabled = scrollLeft <= 0;
-        nextBtn.disabled = scrollLeft >= maxScroll - 1;
-    }
+                prevBtn.disabled = scrollLeft <= 0;
+                nextBtn.disabled = scrollLeft >= maxScroll - 1;
+            }
 
-    prevBtn.addEventListener('click', () => {
-        teamGrid.scrollBy({
-            left: -320,
-            behavior: 'smooth'
-        });
-    });
+            prevBtn.addEventListener('click', () => {
+                teamGrid.scrollBy({
+                    left: -320,
+                    behavior: 'smooth'
+                });
+            });
 
-    nextBtn.addEventListener('click', () => {
-        teamGrid.scrollBy({
-            left: 320,
-            behavior: 'smooth'
-        });
-    });
+            nextBtn.addEventListener('click', () => {
+                teamGrid.scrollBy({
+                    left: 320,
+                    behavior: 'smooth'
+                });
+            });
 
-    teamGrid.addEventListener('scroll', updateButtonState);
-    window.addEventListener('resize', updateButtonState);
-    updateButtonState();
+            teamGrid.addEventListener('scroll', updateButtonState);
+            window.addEventListener('resize', updateButtonState);
+            updateButtonState();
 
-    // Gestion du défilement tactile
-    let isDragging = false;
-    let startX, scrollLeft;
+            // Gestion du défilement tactile
+            let isDragging = false;
+            let startX, scrollLeft;
 
-    teamGrid.addEventListener('touchstart', (e) => {
-        isDragging = true;
-        startX = e.touches[0].pageX - teamGrid.offsetLeft;
-        scrollLeft = teamGrid.scrollLeft;
-    });
+            teamGrid.addEventListener('touchstart', (e) => {
+                isDragging = true;
+                startX = e.touches[0].pageX - teamGrid.offsetLeft;
+                scrollLeft = teamGrid.scrollLeft;
+            });
 
-    teamGrid.addEventListener('touchend', () => {
-        isDragging = false;
-    });
+            teamGrid.addEventListener('touchend', () => {
+                isDragging = false;
+            });
 
-    teamGrid.addEventListener('touchmove', (e) => {
-        if (!isDragging) return;
-        e.preventDefault();
-        const x = e.touches[0].pageX - teamGrid.offsetLeft;
-        const walk = (x - startX) * 2;
-        teamGrid.scrollLeft = scrollLeft - walk;
-    });
-}
+            teamGrid.addEventListener('touchmove', (e) => {
+                if (!isDragging) return;
+                e.preventDefault();
+                const x = e.touches[0].pageX - teamGrid.offsetLeft;
+                const walk = (x - startX) * 2;
+                teamGrid.scrollLeft = scrollLeft - walk;
+            });
+        }
 
-// Initialisation au chargement de la page
-document.addEventListener('DOMContentLoaded', initializeTeamScroll);
         // Mobile Menu Toggle
         function toggleMobileMenu() {
             const mobileMenu = document.getElementById('mobileMenu');
@@ -2363,7 +2806,7 @@ document.addEventListener('DOMContentLoaded', initializeTeamScroll);
 
             async handleFormSubmit(e) {
                 e.preventDefault();
-                e.stopImmediatePropagation(); // Empêche tout autre gestionnaire de se déclencher
+                e.stopImmediatePropagation();
                 
                 const form = e.target;
                 const formData = new FormData(form);
@@ -2392,6 +2835,42 @@ document.addEventListener('DOMContentLoaded', initializeTeamScroll);
                     errors.push('Format email invalide');
                 }
 
+                // Validation pour les rendez-vous
+                const isAppointment = document.getElementById('appointmentRequested').value === '1';
+                const paymentMethod = document.querySelector('input[name="payment_method"]:checked');
+                
+                if (isAppointment) {
+                    if (!paymentMethod) {
+                        this.showMessage('Veuillez sélectionner un mode de paiement pour votre rendez-vous.', 'error');
+                        return;
+                    }
+                    
+                    // Validation paiement en ligne
+                    if (paymentMethod.value === 'online') {
+                        const cardNumber = document.getElementById('cardNumber').value.replace(/\s/g, '');
+                        const cardExpiry = document.getElementById('cardExpiry').value;
+                        const cardCvc = document.getElementById('cardCvc').value;
+                        const cardName = document.getElementById('cardName').value;
+                        
+                        if (!cardNumber || cardNumber.length < 16) {
+                            this.showMessage('Numéro de carte invalide.', 'error');
+                            return;
+                        }
+                        if (!cardExpiry || cardExpiry.length !== 5) {
+                            this.showMessage('Date d\'expiration invalide.', 'error');
+                            return;
+                        }
+                        if (!cardCvc || cardCvc.length < 3) {
+                            this.showMessage('Code CVC invalide.', 'error');
+                            return;
+                        }
+                        if (!cardName.trim()) {
+                            this.showMessage('Nom sur la carte requis.', 'error');
+                            return;
+                        }
+                    }
+                }
+
                 if (!isValid) {
                     this.showMessage('Erreurs: ' + errors.join(', '), 'error');
                     return;
@@ -2416,19 +2895,44 @@ document.addEventListener('DOMContentLoaded', initializeTeamScroll);
                     const data = await response.json();
                     
                     if (data.success) {
-                        this.showMessage(
-                            data.message + 
-                            (data.uploaded_files > 0 ? ` (${data.uploaded_files} fichier(s) joint(s))` : ''), 
-                            'success'
-                        );
+                        let message = data.message;
+                        
+                        if (isAppointment && paymentMethod.value === 'online') {
+                            message = 'Paiement effectué avec succès ! Votre rendez-vous est confirmé. Vous recevrez un email avec les créneaux disponibles.';
+                        } else if (isAppointment) {
+                            message = 'Demande de rendez-vous envoyée ! Nous vous contacterons pour confirmer votre créneau.';
+                        }
+                        
+                        if (data.uploaded_files > 0) {
+                            message += ` (${data.uploaded_files} fichier(s) joint(s))`;
+                        }
+                        
+                        this.showMessage(message, 'success');
+                        
                         form.reset();
                         this.files = [];
                         document.getElementById('filePreview').innerHTML = '';
+                        
+                        // Reset appointment section
+                        document.getElementById('appointmentToggle').classList.remove('active');
+                        document.getElementById('appointmentDetails').classList.remove('show');
+                        setTimeout(() => {
+                            document.getElementById('appointmentDetails').style.display = 'none';
+                        }, 400);
+                        
+                        // Reset payment options
+                        document.querySelectorAll('.payment-option').forEach(option => {
+                            option.classList.remove('selected');
+                        });
+                        document.getElementById('stripeSection').classList.remove('show');
                         
                         // Reset field borders
                         requiredFields.forEach(field => {
                             field.style.borderColor = '#e5e7eb';
                         });
+                        
+                        // Update submit button text
+                        this.updateSubmitButton();
                     } else {
                         if (data.errors) {
                             this.showMessage('Erreurs: ' + data.errors.join(', '), 'error');
@@ -2489,21 +2993,139 @@ document.addEventListener('DOMContentLoaded', initializeTeamScroll);
                 // Scroll vers le message
                 messageElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             }
+
+            updateSubmitButton() {
+                const submitBtn = document.getElementById('submitBtn');
+                const submitText = document.getElementById('submitText');
+                const isAppointment = document.getElementById('appointmentRequested').value === '1';
+                const paymentMethod = document.querySelector('input[name="payment_method"]:checked');
+                
+                if (!isAppointment) {
+                    submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i><span>Envoyer la demande</span>';
+                } else if (paymentMethod) {
+                    if (paymentMethod.value === 'online') {
+                        submitBtn.innerHTML = '<i class="fas fa-credit-card"></i><span>Payer et Réserver (150€)</span>';
+                    } else {
+                        submitBtn.innerHTML = '<i class="fas fa-calendar-alt"></i><span>Demander un rendez-vous</span>';
+                    }
+                } else {
+                    submitBtn.innerHTML = '<i class="fas fa-exclamation-triangle"></i><span>Sélectionner un mode de paiement</span>';
+                }
+            }
         }
 
-        // Initialisation au chargement de la page - UNE SEULE FOIS
+        // Gestion du toggle rendez-vous
+        function initializeAppointmentToggle() {
+            const appointmentToggle = document.getElementById('appointmentToggle');
+            const appointmentDetails = document.getElementById('appointmentDetails');
+            const appointmentRequested = document.getElementById('appointmentRequested');
+
+            if (!appointmentToggle || !appointmentDetails || !appointmentRequested) return;
+
+            appointmentToggle.addEventListener('click', function() {
+                this.classList.toggle('active');
+                const isActive = this.classList.contains('active');
+                
+                appointmentRequested.value = isActive ? '1' : '0';
+                
+                if (isActive) {
+                    appointmentDetails.style.display = 'block';
+                    setTimeout(() => {
+                        appointmentDetails.classList.add('show');
+                    }, 10);
+                } else {
+                    appointmentDetails.classList.remove('show');
+                    setTimeout(() => {
+                        appointmentDetails.style.display = 'none';
+                    }, 400);
+                    // Reset payment selection
+                    document.querySelectorAll('input[name="payment_method"]').forEach(radio => {
+                        radio.checked = false;
+                    });
+                    document.querySelectorAll('.payment-option').forEach(option => {
+                        option.classList.remove('selected');
+                    });
+                    document.getElementById('stripeSection').classList.remove('show');
+                }
+                
+                if (window.fileUploader) {
+                    window.fileUploader.updateSubmitButton();
+                }
+            });
+
+            // Gestion des options de paiement
+            document.querySelectorAll('input[name="payment_method"]').forEach(radio => {
+                radio.addEventListener('change', function() {
+                    // Reset all options
+                    document.querySelectorAll('.payment-option').forEach(option => {
+                        option.classList.remove('selected');
+                    });
+                    
+                    // Select current option
+                    this.closest('.payment-option').classList.add('selected');
+                    
+                    // Show/hide Stripe section
+                    const stripeSection = document.getElementById('stripeSection');
+                    if (this.value === 'online') {
+                        stripeSection.classList.add('show');
+                    } else {
+                        stripeSection.classList.remove('show');
+                    }
+                    
+                    if (window.fileUploader) {
+                        window.fileUploader.updateSubmitButton();
+                    }
+                });
+            });
+
+            // Formatage des champs de carte
+            const cardNumber = document.getElementById('cardNumber');
+            if (cardNumber) {
+                cardNumber.addEventListener('input', function(e) {
+                    let value = e.target.value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
+                    let formattedValue = value.match(/.{1,4}/g)?.join(' ') || value;
+                    this.value = formattedValue;
+                });
+            }
+
+            const cardExpiry = document.getElementById('cardExpiry');
+            if (cardExpiry) {
+                cardExpiry.addEventListener('input', function(e) {
+                    let value = e.target.value.replace(/\D/g, '');
+                    if (value.length >= 2) {
+                        value = value.substring(0, 2) + '/' + value.substring(2, 4);
+                    }
+                    this.value = value;
+                });
+            }
+
+            const cardCvc = document.getElementById('cardCvc');
+            if (cardCvc) {
+                cardCvc.addEventListener('input', function(e) {
+                    this.value = e.target.value.replace(/\D/g, '');
+                });
+            }
+        }
+
+        // Initialisation au chargement de la page
         document.addEventListener('DOMContentLoaded', function() {
             // Initialiser les animations
             animateOnScroll();
             animateCounters();
+            
+            // Initialiser le scroll de l'équipe
+            initializeTeamScroll();
             
             // Ajouter l'effet parallaxe seulement sur desktop
             if (window.innerWidth > 768) {
                 addParallaxEffect();
             }
             
-            // Initialiser le gestionnaire de fichiers - STOCKÉ GLOBALEMENT
+            // Initialiser le gestionnaire de fichiers
             window.fileUploader = new FileUploadManager();
+            
+            // Initialiser le toggle de rendez-vous
+            initializeAppointmentToggle();
             
             console.log('Site Cabinet Juridique Excellence chargé avec succès');
         });
@@ -2546,4 +3168,4 @@ document.addEventListener('DOMContentLoaded', initializeTeamScroll);
         });
     </script>
 </body>
-</html
+</html>
