@@ -841,35 +841,35 @@
                 </div>
             </div>
 
-            <!-- Équipe -->
-            <div id="team" class="tab-content">
-                <div class="add-team-form">
-                    <h3 style="margin-bottom: 1rem;"><i class="fas fa-user-plus"></i>Ajouter un nouveau membre</h3>
-                    <form method="POST" id="add-team-form" enctype="multipart/form-data">
-                        <input type="hidden" name="action" value="add_team">
-                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(generateCSRFToken()); ?>">
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label class="form-label">Nom<span class="text-red-500">*</span></label>
-                                <input type="text" name="name" class="form-control" required>
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Poste<span class="text-red-500">*</span></label>
-                                <input type="text" name="position" class="form-control" required>
-                            </div>
+        <!-- Équipe -->
+        <div id="team" class="tab-content">
+            <div class="add-team-form">
+                <h3 style="margin-bottom: 1rem;"><i class="fas fa-user-plus"></i>Ajouter un nouveau membre</h3>
+                <form method="POST" id="add-team-form" enctype="multipart/form-data" autocomplete="off">
+                    <input type="hidden" name="action" value="add_team">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(generateCSRFToken()); ?>">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Nom<span class="text-red-500">*</span></label>
+                            <input type="text" name="name" class="form-control" required autocomplete="off">
                         </div>
                         <div class="form-group">
-                            <label class="form-label">Description<span class="text-red-500">*</span></label>
-                            <textarea name="description" class="form-control textarea-lg" required></textarea>
+                            <label class="form-label">Poste<span class="text-red-500">*</span></label>
+                            <input type="text" name="position" class="form-control" required autocomplete="off">
                         </div>
-                        <div class="form-group">
-                            <label class="form-label">Image (JPG, PNG, max 5MB)<span class="text-red-500">*</span></label>
-                            <input type="file" name="image" class="form-control" accept="image/jpeg,image/png" required onchange="previewImage(this, 'new_team_preview')">
-                            <img id="new_team_preview" class="image-preview" alt="Aperçu de l'image">
-                        </div>
-                        <button type="submit" class="btn btn-success"><i class="fas fa-plus"></i>Ajouter le membre</button>
-                    </form>
-                </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Description<span class="text-red-500">*</span></label>
+                        <textarea name="description" class="form-control textarea-lg" required autocomplete="off"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Image (JPG, PNG, max 5MB)<span class="text-gray-500 text-sm"> (optionnel)</span></label>
+                        <input type="file" name="image" class="form-control" accept="image/jpeg,image/png" onchange="previewImage(this, 'new_team_preview')">
+                        <img id="new_team_preview" class="image-preview" alt="Aperçu de l'image">
+                    </div>
+                    <button type="submit" class="btn btn-success"><i class="fas fa-plus"></i>Ajouter le membre</button>
+                </form>
+            </div>
 
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                     <h3>Équipe existante</h3>
@@ -1213,79 +1213,80 @@
                 orders[item.dataset.id] = index + 1;
                 item.querySelector('.order-indicator').textContent = index + 1;
             });
-            const formData = new FormData();
-            formData.append('action', `reorder_${type}`);
-            formData.append('orders', JSON.stringify(orders));
-            formData.append('csrf_token', '<?php echo htmlspecialchars(generateCSRFToken()); ?>');
-            fetch(window.location.href, {
-                method: 'POST',
-                body: formData
-            }).then(response => response.json()).then(data => {
-                if (!data.success) alert('Erreur: ' + data.message);
-            }).catch(error => {
-                console.error('Error:', error);
-                alert('Erreur lors de la mise à jour de l\'ordre');
-            });
+            
+            // Créer un formulaire caché pour soumettre l'ordre
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.style.display = 'none';
+            
+            const actionInput = document.createElement('input');
+            actionInput.type = 'hidden';
+            actionInput.name = 'action';
+            actionInput.value = `reorder_${type}`;
+            form.appendChild(actionInput);
+            
+            const ordersInput = document.createElement('input');
+            ordersInput.type = 'hidden';
+            ordersInput.name = 'orders';
+            ordersInput.value = JSON.stringify(orders);
+            form.appendChild(ordersInput);
+            
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = 'csrf_token';
+            csrfInput.value = '<?php echo htmlspecialchars(generateCSRFToken()); ?>';
+            form.appendChild(csrfInput);
+            
+            document.body.appendChild(form);
+            form.submit();
         }
 
-        function setupFormValidation() {
-            const forms = document.querySelectorAll('form');
-            forms.forEach(form => {
-                form.addEventListener('submit', e => {
-                    e.preventDefault();
-                    const requiredFields = form.querySelectorAll('input[required], textarea[required], select[required]');
-                    let isValid = true;
-                    requiredFields.forEach(field => {
-                        if (!field.value.trim()) {
-                            isValid = false;
-                            field.classList.add('border-red-500');
-                        } else {
-                            field.classList.remove('border-red-500');
-                        }
-                    });
+ function setupFormValidation() {
+        const forms = document.querySelectorAll('form');
+        forms.forEach(form => {
+            form.addEventListener('submit', e => {
+                // Correction : ne pas empêcher le submit pour les formulaires sans JS/AJAX
+                if (form.id !== 'add-team-form' && form.id !== 'add-service-form' && form.id !== 'add-news-form') return;
+
+                e.preventDefault();
+                const requiredFields = form.querySelectorAll('input[required], textarea[required], select[required]');
+                let isValid = true;
+                requiredFields.forEach(field => {
+                    if (!field.value.trim()) {
+                        isValid = false;
+                        field.classList.add('border-red-500');
+                    } else {
+                        field.classList.remove('border-red-500');
+                    }
+                });
                     const editor = form.querySelector('.editor-content');
                     if (editor) {
-                        const hiddenInput = form.querySelector(`input[name="${editor.dataset.serviceId ? 'detailed_content' : 'content'}"]`);
+                        const hiddenInput = form.querySelector(`input[name="${editor.dataset.serviceId ? 'detailed_content' : (editor.dataset.newsId ? 'content' : '')}"]`) || form.querySelector('input[name="detailed_content"]') || form.querySelector('input[name="content"]');
                         if (hiddenInput) {
                             const content = editor.innerHTML.trim();
-                            if (!content || content === '<p>Contenu à compléter...</p>' || content === '<p>Contenu détaillé à compléter...</p>') {
+                            const isEditorRequired = hiddenInput.name !== 'detailed_content';
+                            let finalContent = content;
+                            if (content === '<p>Contenu à compléter...</p>' || content === '<p>Contenu détaillé à compléter...</p>') {
+                                finalContent = '';
+                            }
+                            if (isEditorRequired && (!finalContent || content === '<p>Contenu à compléter...</p>' || content === '<p>Contenu détaillé à compléter...</p>')) {
                                 isValid = false;
-                                editor.classList.add('border-red-500');
+                                editor.closest('.rich-editor').classList.add('border-red-500');
                                 alert('Le contenu de l\'éditeur ne peut pas être vide ou contenir le texte par défaut.');
                             } else {
-                                hiddenInput.value = content;
-                                editor.classList.remove('border-red-500');
+                                hiddenInput.value = finalContent;
+                                editor.closest('.rich-editor').classList.remove('border-red-500');
                             }
                         }
                     }
                     if (isValid) {
-                        const submitBtn = form.querySelector('button[type="submit"]');
-                        const originalText = submitBtn.innerHTML;
-                        submitBtn.disabled = true;
-                        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>Sauvegarde...';
-                        const formData = new FormData(form);
-                        fetch(window.location.href, {
-                            method: 'POST',
-                            body: formData
-                        }).then(response => response.json()).then(data => {
-                            submitBtn.disabled = false;
-                            submitBtn.innerHTML = originalText;
-                            if (data.success) {
-                                location.reload();
-                            } else {
-                                alert('Erreur: ' + data.message);
-                            }
-                        }).catch(error => {
-                            submitBtn.disabled = false;
-                            submitBtn.innerHTML = originalText;
-                            alert('Erreur lors de la sauvegarde.');
-                        });
-                    } else {
-                        alert('Veuillez remplir tous les champs requis.');
-                    }
-                });
+                    form.submit(); // Soumettre le formulaire normalement pour recharger la page
+                } else {
+                    alert('Veuillez remplir tous les champs requis.');
+                }
             });
-        }
+        });
+    }
 
         document.addEventListener('DOMContentLoaded', () => {
             document.querySelectorAll('input[name="icon"]').forEach(input => {
@@ -1328,34 +1329,8 @@
                 }
             });
             document.getElementById('editForm').addEventListener('submit', function(e) {
-                e.preventDefault();
-                const formData = new FormData();
-                formData.append('action', 'update_content');
-                const section = document.getElementById('editSection').value;
-                const key = document.getElementById('editKey').value;
-                const value = document.getElementById('editValue').value;
-                formData.append(`content[${section}][${key}]`, value);
-                formData.append('csrf_token', '<?php echo htmlspecialchars(generateCSRFToken()); ?>');
-                const submitBtn = this.querySelector('button[type="submit"]');
-                const originalText = submitBtn.innerHTML;
-                submitBtn.disabled = true;
-                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>Sauvegarde...';
-                fetch(window.location.href, {
-                    method: 'POST',
-                    body: formData
-                }).then(response => response.json()).then(data => {
-                    submitBtn.disabled = false;
-                    submitBtn.innerHTML = originalText;
-                    if (data.success) {
-                        location.reload();
-                    } else {
-                        alert('Erreur: ' + data.message);
-                    }
-                }).catch(error => {
-                    submitBtn.disabled = false;
-                    submitBtn.innerHTML = originalText;
-                    alert('Erreur lors de la sauvegarde.');
-                });
+                // Ne pas empêcher le submit, laisser le formulaire se soumettre normalement
+                // La page se rechargera automatiquement
             });
             document.addEventListener('keydown', function(e) {
                 if (e.key === 'Escape') closeEditModal();

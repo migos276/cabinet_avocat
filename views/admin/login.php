@@ -157,6 +157,8 @@
         <?php endif; ?>
 
         <form method="POST">
+            <input type="hidden" name="csrf_token" value="<?php echo generateCSRFToken(); ?>">
+            
             <div class="form-group">
                 <label for="username">
                     <i class="fas fa-user"></i>

@@ -28,9 +28,6 @@ class HomeController {
 
     public function index() {
         try {
-            // Define constants used in the view
-            define('SITE_NAME', 'Cabinet Excellence');
-
             $content = $this->getContent();
             $services = $this->getServices();
             $team = $this->getTeam();

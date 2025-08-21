@@ -9,13 +9,17 @@ class AdminController {
     private $newsUploadDir = NEWS_UPLOAD_PATH;
 
     public function __construct() {
+        // Ensure session is started
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
         $database = new Database();
         $this->db = $database->getConnection();
     }
 
-    private function sendJsonResponse($success, $message = '') {
-        header('Content-Type: application/json');
-        echo json_encode(['success' => $success, 'message' => $message]);
+    private function redirectWithMessage($success, $message, $location = '/admin/content') {
+        $_SESSION['flash_message'] = ['success' => $success, 'message' => $message];
+        header("Location: $location");
         exit;
     }
 
@@ -41,9 +45,9 @@ class AdminController {
                 $stmt = $this->db->prepare("SELECT image_path FROM $table WHERE id = ?");
                 $stmt->execute([$existing_id]);
                 $existing_path = $stmt->fetchColumn();
-                return $existing_path ?: null; // Return null instead of empty string for DB compatibility
+                return $existing_path ?: '';
             }
-            return null; // Return null for no file
+            return '';
         }
 
         $allowed_types = ALLOWED_FILE_TYPES;
@@ -70,7 +74,7 @@ class AdminController {
         }
 
         // Generate unique filename
-        $extension = pathinfo($file['name'], PATHINFO_EXTENSION);
+        $extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
         $filename = uniqid(($upload_dir === $this->teamUploadDir ? 'team_' : 'news_')) . '.' . $extension;
         $destination = $absolute_dir . $filename;
         $relative_path = $upload_dir . $filename;
@@ -97,35 +101,56 @@ class AdminController {
     }
 
     public function login() {
+        // Ensure session is started
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            // Verify CSRF token
             if (!verifyCSRFToken($_POST['csrf_token'] ?? '')) {
                 error_log("CSRF token validation failed in login");
-                $error = 'Erreur de validation CSRF';
+                $error = 'Erreur de validation CSRF. Veuillez réessayer.';
                 include 'views/admin/login.php';
                 return;
             }
 
-            $username = $_POST['username'] ?? '';
-            $password = $_POST['password'] ?? '';
+            $username = trim($_POST['username'] ?? '');
+            $password = trim($_POST['password'] ?? '');
 
-            $stmt = $this->db->prepare("SELECT * FROM admin_users WHERE username = ?");
-            $stmt->execute([$username]);
-            $user = $stmt->fetch();
+            if (empty($username) || empty($password)) {
+                error_log("Login failed: Empty username or password");
+                $error = 'Veuillez fournir un nom d\'utilisateur et un mot de passe.';
+                include 'views/admin/login.php';
+                return;
+            }
 
-            if ($user && $user['is_active'] && password_verify($password, $user['password'])) {
-                $_SESSION['admin_logged_in'] = true;
-                $_SESSION['admin_id'] = $user['id'];
-                $updateStmt = $this->db->prepare("UPDATE admin_users SET last_login = datetime('now'), updated_at = datetime('now') WHERE id = ?");
-                $updateStmt->execute([$user['id']]);
-                error_log("Login successful for user: $username");
-                header('Location: /admin/dashboard');
-                exit;
-            } else {
-                error_log("Login failed for user: $username - Invalid credentials or inactive account");
-                $error = 'Identifiants incorrects ou compte inactif';
+            try {
+                $stmt = $this->db->prepare("SELECT * FROM admin_users WHERE username = ?");
+                $stmt->execute([$username]);
+                $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+                if ($user && $user['is_active'] && password_verify($password, $user['password'])) {
+                    $_SESSION['admin_logged_in'] = true;
+                    $_SESSION['admin_id'] = $user['id'];
+                    // Regenerate session ID to prevent session fixation
+                    session_regenerate_id(true);
+                    $updateStmt = $this->db->prepare("UPDATE admin_users SET last_login = datetime('now'), updated_at = datetime('now') WHERE id = ?");
+                    $updateStmt->execute([$user['id']]);
+                    error_log("Login successful for user: $username");
+                    header('Location: /admin/dashboard');
+                    exit;
+                } else {
+                    error_log("Login failed for user: $username - Invalid credentials or inactive account");
+                    $error = 'Identifiants incorrects ou compte inactif.';
+                }
+            } catch (PDOException $e) {
+                error_log("Database error during login: " . $e->getMessage());
+                $error = 'Erreur serveur lors de la connexion. Veuillez réessayer plus tard.';
             }
         }
 
+        // Redirect if already logged in
         if (isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in']) {
             header('Location: /admin/dashboard');
             exit;
@@ -136,79 +161,100 @@ class AdminController {
 
     public function dashboard() {
         $this->requireAuth();
+        header('Cache-Control: no-cache, must-revalidate');
 
-        $stats = [
-            'contacts' => $this->db->query("SELECT COUNT(*) FROM contacts")->fetchColumn(),
-            'new_contacts' => $this->db->query("SELECT COUNT(*) FROM contacts WHERE status = 'new'")->fetchColumn(),
-            'services' => $this->db->query("SELECT COUNT(*) FROM services WHERE is_active = 1")->fetchColumn(),
-            'team_members' => $this->db->query("SELECT COUNT(*) FROM team_members WHERE is_active = 1")->fetchColumn(),
-            'news' => $this->db->query("SELECT COUNT(*) FROM news WHERE is_active = 1")->fetchColumn()
-        ];
+        try {
+            $stats = [
+                'contacts' => $this->db->query("SELECT COUNT(*) FROM contacts")->fetchColumn(),
+                'new_contacts' => $this->db->query("SELECT COUNT(*) FROM contacts WHERE status = 'new'")->fetchColumn(),
+                'services' => $this->db->query("SELECT COUNT(*) FROM services WHERE is_active = 1")->fetchColumn(),
+                'team_members' => $this->db->query("SELECT COUNT(*) FROM team_members WHERE is_active = 1")->fetchColumn(),
+                'news' => $this->db->query("SELECT COUNT(*) FROM news WHERE is_active = 1")->fetchColumn()
+            ];
 
-        $recent_contacts = $this->db->query("
-            SELECT * FROM contacts 
-            ORDER BY created_at DESC 
-            LIMIT 5
-        ")->fetchAll(PDO::FETCH_ASSOC);
+            $recent_contacts = $this->db->query("
+                SELECT * FROM contacts 
+                ORDER BY created_at DESC 
+                LIMIT 5
+            ")->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Database error in dashboard: " . $e->getMessage());
+            $error = 'Erreur serveur lors du chargement du tableau de bord.';
+            include 'views/admin/error.php';
+            return;
+        }
 
         include 'views/admin/dashboard.php';
     }
 
     public function content() {
         $this->requireAuth();
+        header('Cache-Control: no-cache, must-revalidate');
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!verifyCSRFToken($_POST['csrf_token'] ?? '')) {
-                error_log("CSRF token validation failed");
-                $this->sendJsonResponse(false, 'Erreur de validation CSRF');
+                error_log("CSRF token validation failed in content");
+                $this->redirectWithMessage(false, 'Erreur de validation CSRF');
             }
 
-            $action = $_POST['action'] ?? '';
+            $action = trim($_POST['action'] ?? '');
 
             try {
                 if ($action === 'update_content') {
                     foreach ($_POST['content'] as $section => $keys) {
                         foreach ($keys as $key => $value) {
+                            $section = htmlspecialchars(trim($section));
+                            $key = htmlspecialchars(trim($key));
+                            $value = htmlspecialchars(trim($value));
                             $stmt = $this->db->prepare("
                                 INSERT OR REPLACE INTO site_content (section, key_name, value, updated_at) 
                                 VALUES (?, ?, ?, datetime('now'))
                             ");
-                            $stmt->execute([$section, $key, $value]);
+                            if (!$stmt->execute([$section, $key, $value])) {
+                                error_log("Failed to update content: section=$section, key=$key");
+                                $this->redirectWithMessage(false, 'Erreur : Échec de la mise à jour du contenu.');
+                            }
                         }
                     }
-                    $this->sendJsonResponse(true, 'Contenu mis à jour avec succès!');
+                    $this->redirectWithMessage(true, 'Contenu mis à jour avec succès!');
                 } elseif ($action === 'add_content_section') {
-                    $section = $_POST['new_section'] ?? '';
-                    $key = $_POST['new_key'] ?? '';
-                    $value = $_POST['new_value'] ?? '';
+                    $section = htmlspecialchars(trim($_POST['new_section'] ?? ''));
+                    $key = htmlspecialchars(trim($_POST['new_key'] ?? ''));
+                    $value = htmlspecialchars(trim($_POST['new_value'] ?? ''));
 
                     if ($section && $key) {
                         $stmt = $this->db->prepare("
                             INSERT INTO site_content (section, key_name, value, updated_at) 
                             VALUES (?, ?, ?, datetime('now'))
                         ");
-                        $stmt->execute([$section, $key, $value]);
-                        $this->sendJsonResponse(true, 'Nouveau contenu ajouté avec succès!');
+                        if (!$stmt->execute([$section, $key, $value])) {
+                            error_log("Failed to add content section: section=$section, key=$key");
+                            $this->redirectWithMessage(false, 'Erreur : Échec de l\'ajout du contenu.');
+                        }
+                        $this->redirectWithMessage(true, 'Nouveau contenu ajouté avec succès!');
                     } else {
-                        $this->sendJsonResponse(false, 'Erreur : Section et clé sont requis.');
+                        $this->redirectWithMessage(false, 'Erreur : Section et clé sont requis.');
                     }
                 } elseif ($action === 'delete_content') {
-                    $section = $_POST['content_section'] ?? '';
-                    $key = $_POST['content_key'] ?? '';
+                    $section = htmlspecialchars(trim($_POST['content_section'] ?? ''));
+                    $key = htmlspecialchars(trim($_POST['content_key'] ?? ''));
 
                     if ($section && $key) {
                         $stmt = $this->db->prepare("DELETE FROM site_content WHERE section = ? AND key_name = ?");
-                        $stmt->execute([$section, $key]);
-                        $this->sendJsonResponse(true, 'Contenu supprimé avec succès!');
+                        if (!$stmt->execute([$section, $key])) {
+                            error_log("Failed to delete content: section=$section, key=$key");
+                            $this->redirectWithMessage(false, 'Erreur : Échec de la suppression du contenu.');
+                        }
+                        $this->redirectWithMessage(true, 'Contenu supprimé avec succès!');
                     } else {
-                        $this->sendJsonResponse(false, 'Erreur : Section et clé sont requis.');
+                        $this->redirectWithMessage(false, 'Erreur : Section et clé sont requis.');
                     }
                 } elseif ($action === 'add_service') {
-                    $title = $_POST['title'] ?? '';
-                    $description = $_POST['description'] ?? '';
-                    $icon = $_POST['icon'] ?? 'fas fa-gavel';
-                    $color = $_POST['color'] ?? '#3b82f6';
-                    $detailed_content = $_POST['detailed_content'] ?? '';
+                    $title = htmlspecialchars(trim($_POST['title'] ?? ''));
+                    $description = htmlspecialchars(trim($_POST['description'] ?? ''));
+                    $icon = htmlspecialchars(trim($_POST['icon'] ?? 'fas fa-gavel'));
+                    $color = htmlspecialchars(trim($_POST['color'] ?? '#3b82f6'));
+                    $detailed_content = htmlspecialchars(trim($_POST['detailed_content'] ?? ''));
 
                     if ($title && $description) {
                         $stmt = $this->db->query("SELECT COALESCE(MAX(order_position), 0) + 1 as next_position FROM services");
@@ -218,18 +264,21 @@ class AdminController {
                             INSERT INTO services (title, description, icon, color, detailed_content, is_active, order_position, created_at, updated_at)
                             VALUES (?, ?, ?, ?, ?, 1, ?, datetime('now'), datetime('now'))
                         ");
-                        $stmt->execute([$title, $description, $icon, $color, $detailed_content, $next_position]);
-                        $this->sendJsonResponse(true, 'Service ajouté avec succès!');
+                        if (!$stmt->execute([$title, $description, $icon, $color, $detailed_content, $next_position])) {
+                            error_log("Failed to add service: title=$title");
+                            $this->redirectWithMessage(false, 'Erreur : Échec de l\'ajout du service.');
+                        }
+                        $this->redirectWithMessage(true, 'Service ajouté avec succès!');
                     } else {
-                        $this->sendJsonResponse(false, 'Erreur : Titre et description sont requis.');
+                        $this->redirectWithMessage(false, 'Erreur : Titre et description sont requis.');
                     }
                 } elseif ($action === 'update_service') {
-                    $id = $_POST['service_id'] ?? '';
-                    $title = $_POST['title'] ?? '';
-                    $description = $_POST['description'] ?? '';
-                    $icon = $_POST['icon'] ?? '';
-                    $color = $_POST['color'] ?? '';
-                    $detailed_content = $_POST['detailed_content'] ?? '';
+                    $id = trim($_POST['service_id'] ?? '');
+                    $title = htmlspecialchars(trim($_POST['title'] ?? ''));
+                    $description = htmlspecialchars(trim($_POST['description'] ?? ''));
+                    $icon = htmlspecialchars(trim($_POST['icon'] ?? ''));
+                    $color = htmlspecialchars(trim($_POST['color'] ?? ''));
+                    $detailed_content = htmlspecialchars(trim($_POST['detailed_content'] ?? ''));
 
                     if ($id && $title && $description) {
                         $stmt = $this->db->prepare("
@@ -237,104 +286,129 @@ class AdminController {
                             SET title = ?, description = ?, icon = ?, color = ?, detailed_content = ?, updated_at = datetime('now')
                             WHERE id = ?
                         ");
-                        $stmt->execute([$title, $description, $icon, $color, $detailed_content, $id]);
-                        $this->sendJsonResponse(true, 'Service mis à jour avec succès!');
+                        if (!$stmt->execute([$title, $description, $icon, $color, $detailed_content, $id])) {
+                            error_log("Failed to update service: id=$id");
+                            $this->redirectWithMessage(false, 'Erreur : Échec de la mise à jour du service.');
+                        }
+                        $this->redirectWithMessage(true, 'Service mis à jour avec succès!');
                     } else {
-                        $this->sendJsonResponse(false, 'Erreur : Données invalides pour la mise à jour du service.');
+                        $this->redirectWithMessage(false, 'Erreur : Données invalides pour la mise à jour du service.');
                     }
                 } elseif ($action === 'delete_service') {
-                    $id = $_POST['service_id'] ?? '';
+                    $id = trim($_POST['service_id'] ?? '');
                     if ($id) {
                         $stmt = $this->db->prepare("DELETE FROM services WHERE id = ?");
-                        $stmt->execute([$id]);
-                        $this->sendJsonResponse(true, 'Service supprimé avec succès!');
+                        if (!$stmt->execute([$id])) {
+                            error_log("Failed to delete service: id=$id");
+                            $this->redirectWithMessage(false, 'Erreur : Échec de la suppression du service.');
+                        }
+                        $this->redirectWithMessage(true, 'Service supprimé avec succès!');
                     } else {
-                        $this->sendJsonResponse(false, 'Erreur : ID du service manquant.');
+                        $this->redirectWithMessage(false, 'Erreur : ID du service manquant.');
                     }
                 } elseif ($action === 'reorder_services') {
                     $orders = json_decode($_POST['orders'] ?? '{}', true);
-                    if ($orders) {
+                    if ($orders && is_array($orders)) {
                         foreach ($orders as $id => $position) {
                             $stmt = $this->db->prepare("UPDATE services SET order_position = ? WHERE id = ?");
-                            $stmt->execute([$position, $id]);
+                            if (!$stmt->execute([(int)$position, (int)$id])) {
+                                error_log("Failed to reorder service: id=$id, position=$position");
+                                $this->redirectWithMessage(false, 'Erreur : Échec de la réorganisation des services.');
+                            }
                         }
-                        $this->sendJsonResponse(true, 'Ordre des services mis à jour avec succès!');
+                        $this->redirectWithMessage(true, 'Ordre des services mis à jour avec succès!');
                     } else {
-                        $this->sendJsonResponse(false, 'Erreur : Données d\'ordre invalides.');
+                        $this->redirectWithMessage(false, 'Erreur : Données d\'ordre invalides.');
                     }
                 } elseif ($action === 'add_team') {
-                    $name = $_POST['name'] ?? '';
-                    $position = $_POST['position'] ?? '';
-                    $description = $_POST['description'] ?? '';
+                    $name = htmlspecialchars(trim($_POST['name'] ?? ''));
+                    $position = htmlspecialchars(trim($_POST['position'] ?? ''));
+                    $description = htmlspecialchars(trim($_POST['description'] ?? ''));
 
                     if ($name && $position && $description) {
                         $image_path = $this->handleImageUpload($_FILES['image'] ?? [], null, $this->teamUploadDir);
                         if (is_string($image_path) && strpos($image_path, 'Erreur') === 0) {
-                            $this->sendJsonResponse(false, $image_path);
+                            error_log("Image upload failed for team: $image_path");
+                            $this->redirectWithMessage(false, $image_path);
                         } else {
                             $stmt = $this->db->prepare("
                                 INSERT INTO team_members (name, position, description, image_path, is_active, order_position, created_at, updated_at)
                                 VALUES (?, ?, ?, ?, 1, (SELECT COALESCE(MAX(order_position), 0) + 1 FROM team_members), datetime('now'), datetime('now'))
                             ");
-                            $stmt->execute([$name, $position, $description, $image_path]);
-                            $this->sendJsonResponse(true, 'Membre de l\'équipe ajouté avec succès!');
+                            if (!$stmt->execute([$name, $position, $description, $image_path])) {
+                                error_log("Failed to add team member: name=$name");
+                                $this->redirectWithMessage(false, 'Erreur : Échec de l\'ajout du membre.');
+                            }
+                            $this->redirectWithMessage(true, 'Membre de l\'équipe ajouté avec succès!');
                         }
                     } else {
-                        $this->sendJsonResponse(false, 'Erreur : Nom, poste et description sont requis.');
+                        $this->redirectWithMessage(false, 'Erreur : Nom, poste et description sont requis.');
                     }
                 } elseif ($action === 'update_team') {
-                    $id = $_POST['team_id'] ?? '';
-                    $name = $_POST['name'] ?? '';
-                    $position = $_POST['position'] ?? '';
-                    $description = $_POST['description'] ?? '';
+                    $id = trim($_POST['team_id'] ?? '');
+                    $name = htmlspecialchars(trim($_POST['name'] ?? ''));
+                    $position = htmlspecialchars(trim($_POST['position'] ?? ''));
+                    $description = htmlspecialchars(trim($_POST['description'] ?? ''));
 
                     if ($id && $name && $position && $description) {
                         $image_path = $this->handleImageUpload($_FILES['image'] ?? [], $id, $this->teamUploadDir);
                         if (is_string($image_path) && strpos($image_path, 'Erreur') === 0) {
-                            $this->sendJsonResponse(false, $image_path);
+                            error_log("Image upload failed for team update: $image_path");
+                            $this->redirectWithMessage(false, $image_path);
                         } else {
                             $stmt = $this->db->prepare("
                                 UPDATE team_members 
                                 SET name = ?, position = ?, description = ?, image_path = ?, updated_at = datetime('now')
                                 WHERE id = ?
                             ");
-                            $stmt->execute([$name, $position, $description, $image_path, $id]);
-                            $this->sendJsonResponse(true, 'Membre de l\'équipe mis à jour avec succès!');
+                            if (!$stmt->execute([$name, $position, $description, $image_path, $id])) {
+                                error_log("Failed to update team member: id=$id");
+                                $this->redirectWithMessage(false, 'Erreur : Échec de la mise à jour du membre.');
+                            }
+                            $this->redirectWithMessage(true, 'Membre de l\'équipe mis à jour avec succès!');
                         }
                     } else {
-                        $this->sendJsonResponse(false, 'Erreur : Données invalides pour la mise à jour du membre.');
+                        $this->redirectWithMessage(false, 'Erreur : Données invalides pour la mise à jour du membre.');
                     }
                 } elseif ($action === 'delete_team') {
-                    $id = $_POST['team_id'] ?? '';
+                    $id = trim($_POST['team_id'] ?? '');
                     if ($id) {
                         $stmt = $this->db->prepare("SELECT image_path FROM team_members WHERE id = ?");
                         $stmt->execute([$id]);
                         $image_path = $stmt->fetchColumn();
                         if ($image_path && file_exists($_SERVER['DOCUMENT_ROOT'] . $image_path)) {
-                            unlink($_SERVER['DOCUMENT_ROOT'] . $image_path);
-                            error_log("Deleted team image: $image_path");
+                            if (!unlink($_SERVER['DOCUMENT_ROOT'] . $image_path)) {
+                                error_log("Failed to delete team image: $image_path");
+                            } else {
+                                error_log("Deleted team image: $image_path");
+                            }
                         }
-
                         $stmt = $this->db->prepare("DELETE FROM team_members WHERE id = ?");
-                        $stmt->execute([$id]);
-                        $this->sendJsonResponse(true, 'Membre de l\'équipe supprimé avec succès!');
+                        if (!$stmt->execute([$id])) {
+                            error_log("Failed to delete team member: id=$id");
+                            $this->redirectWithMessage(false, 'Erreur : Échec de la suppression du membre.');
+                        }
+                        $this->redirectWithMessage(true, 'Membre de l\'équipe supprimé avec succès!');
                     } else {
-                        $this->sendJsonResponse(false, 'Erreur : ID du membre manquant.');
+                        $this->redirectWithMessage(false, 'Erreur : ID du membre manquant.');
                     }
                 } elseif ($action === 'reorder_team') {
                     $orders = json_decode($_POST['orders'] ?? '{}', true);
-                    if ($orders) {
+                    if ($orders && is_array($orders)) {
                         foreach ($orders as $id => $position) {
                             $stmt = $this->db->prepare("UPDATE team_members SET order_position = ? WHERE id = ?");
-                            $stmt->execute([$position, $id]);
+                            if (!$stmt->execute([(int)$position, (int)$id])) {
+                                error_log("Failed to reorder team member: id=$id, position=$position");
+                                $this->redirectWithMessage(false, 'Erreur : Échec de la réorganisation de l\'équipe.');
+                            }
                         }
-                        $this->sendJsonResponse(true, 'Ordre de l\'équipe mis à jour avec succès!');
+                        $this->redirectWithMessage(true, 'Ordre de l\'équipe mis à jour avec succès!');
                     } else {
-                        $this->sendJsonResponse(false, 'Erreur : Données d\'ordre invalides.');
+                        $this->redirectWithMessage(false, 'Erreur : Données d\'ordre invalides.');
                     }
                 } elseif ($action === 'add_news') {
-                    $title = trim($_POST['title'] ?? '');
-                    $content = trim($_POST['content'] ?? '');
+                    $title = htmlspecialchars(trim($_POST['title'] ?? ''));
+                    $content = htmlspecialchars(trim($_POST['content'] ?? ''));
                     $publish_date = trim($_POST['publish_date'] ?? '');
 
                     error_log("Add news attempt: title=$title, content_length=" . strlen($content) . ", publish_date=$publish_date");
@@ -342,16 +416,19 @@ class AdminController {
                     if ($title && $content && $publish_date) {
                         $image_path = $this->handleImageUpload($_FILES['image'] ?? [], null, $this->newsUploadDir);
                         if (is_string($image_path) && strpos($image_path, 'Erreur') === 0) {
-                            error_log("Image upload failed: $image_path");
-                            $this->sendJsonResponse(false, $image_path);
+                            error_log("Image upload failed for news: $image_path");
+                            $this->redirectWithMessage(false, $image_path);
                         } else {
                             $stmt = $this->db->prepare("
                                 INSERT INTO news (title, content, image_path, publish_date, is_active, order_position, created_at, updated_at)
                                 VALUES (?, ?, ?, ?, 1, (SELECT COALESCE(MAX(order_position), 0) + 1 FROM news), datetime('now'), datetime('now'))
                             ");
-                            $stmt->execute([$title, $content, $image_path, $publish_date]);
+                            if (!$stmt->execute([$title, $content, $image_path, $publish_date])) {
+                                error_log("Failed to add news: title=$title");
+                                $this->redirectWithMessage(false, 'Erreur : Échec de l\'ajout de l\'actualité.');
+                            }
                             error_log("News added successfully: ID=" . $this->db->lastInsertId());
-                            $this->sendJsonResponse(true, 'Actualité ajoutée avec succès!');
+                            $this->redirectWithMessage(true, 'Actualité ajoutée avec succès!');
                         }
                     } else {
                         $errors = [];
@@ -359,12 +436,12 @@ class AdminController {
                         if (!$content) $errors[] = 'Contenu manquant';
                         if (!$publish_date) $errors[] = 'Date de publication manquante';
                         error_log("Add news failed: " . implode(', ', $errors));
-                        $this->sendJsonResponse(false, 'Erreur : ' . implode(', ', $errors));
+                        $this->redirectWithMessage(false, 'Erreur : ' . implode(', ', $errors));
                     }
                 } elseif ($action === 'update_news') {
-                    $id = $_POST['news_id'] ?? '';
-                    $title = trim($_POST['title'] ?? '');
-                    $content = trim($_POST['content'] ?? '');
+                    $id = trim($_POST['news_id'] ?? '');
+                    $title = htmlspecialchars(trim($_POST['title'] ?? ''));
+                    $content = htmlspecialchars(trim($_POST['content'] ?? ''));
                     $publish_date = trim($_POST['publish_date'] ?? '');
 
                     error_log("Update news attempt: id=$id, title=$title, content_length=" . strlen($content) . ", publish_date=$publish_date");
@@ -372,17 +449,20 @@ class AdminController {
                     if ($id && $title && $content && $publish_date) {
                         $image_path = $this->handleImageUpload($_FILES['image'] ?? [], $id, $this->newsUploadDir);
                         if (is_string($image_path) && strpos($image_path, 'Erreur') === 0) {
-                            error_log("Image upload failed: $image_path");
-                            $this->sendJsonResponse(false, $image_path);
+                            error_log("Image upload failed for news update: $image_path");
+                            $this->redirectWithMessage(false, $image_path);
                         } else {
                             $stmt = $this->db->prepare("
                                 UPDATE news 
                                 SET title = ?, content = ?, image_path = ?, publish_date = ?, updated_at = datetime('now')
                                 WHERE id = ?
                             ");
-                            $stmt->execute([$title, $content, $image_path, $publish_date, $id]);
+                            if (!$stmt->execute([$title, $content, $image_path, $publish_date, $id])) {
+                                error_log("Failed to update news: id=$id");
+                                $this->redirectWithMessage(false, 'Erreur : Échec de la mise à jour de l\'actualité.');
+                            }
                             error_log("News updated successfully: ID=$id");
-                            $this->sendJsonResponse(true, 'Actualité mise à jour avec succès!');
+                            $this->redirectWithMessage(true, 'Actualité mise à jour avec succès!');
                         }
                     } else {
                         $errors = [];
@@ -391,164 +471,229 @@ class AdminController {
                         if (!$content) $errors[] = 'Contenu manquant';
                         if (!$publish_date) $errors[] = 'Date de publication manquante';
                         error_log("Update news failed: " . implode(', ', $errors));
-                        $this->sendJsonResponse(false, 'Erreur : ' . implode(', ', $errors));
+                        $this->redirectWithMessage(false, 'Erreur : ' . implode(', ', $errors));
                     }
                 } elseif ($action === 'delete_news') {
-                    $id = $_POST['news_id'] ?? '';
+                    $id = trim($_POST['news_id'] ?? '');
                     if ($id) {
                         $stmt = $this->db->prepare("SELECT image_path FROM news WHERE id = ?");
                         $stmt->execute([$id]);
                         $image_path = $stmt->fetchColumn();
                         if ($image_path && file_exists($_SERVER['DOCUMENT_ROOT'] . $image_path)) {
-                            unlink($_SERVER['DOCUMENT_ROOT'] . $image_path);
-                            error_log("Deleted news image: $image_path");
+                            if (!unlink($_SERVER['DOCUMENT_ROOT'] . $image_path)) {
+                                error_log("Failed to delete news image: $image_path");
+                            } else {
+                                error_log("Deleted news image: $image_path");
+                            }
                         }
-
                         $stmt = $this->db->prepare("DELETE FROM news WHERE id = ?");
-                        $stmt->execute([$id]);
+                        if (!$stmt->execute([$id])) {
+                            error_log("Failed to delete news: id=$id");
+                            $this->redirectWithMessage(false, 'Erreur : Échec de la suppression de l\'actualité.');
+                        }
                         error_log("News deleted successfully: ID=$id");
-                        $this->sendJsonResponse(true, 'Actualité supprimée avec succès!');
+                        $this->redirectWithMessage(true, 'Actualité supprimée avec succès!');
                     } else {
                         error_log("Delete news failed: Missing ID");
-                        $this->sendJsonResponse(false, 'Erreur : ID de l\'actualité manquant.');
+                        $this->redirectWithMessage(false, 'Erreur : ID de l\'actualité manquant.');
                     }
                 } elseif ($action === 'reorder_news') {
                     $orders = json_decode($_POST['orders'] ?? '{}', true);
-                    if ($orders) {
+                    if ($orders && is_array($orders)) {
                         foreach ($orders as $id => $position) {
                             $stmt = $this->db->prepare("UPDATE news SET order_position = ? WHERE id = ?");
-                            $stmt->execute([$position, $id]);
+                            if (!$stmt->execute([(int)$position, (int)$id])) {
+                                error_log("Failed to reorder news: id=$id, position=$position");
+                                $this->redirectWithMessage(false, 'Erreur : Échec de la réorganisation des actualités.');
+                            }
                         }
                         error_log("News order updated successfully");
-                        $this->sendJsonResponse(true, 'Ordre des actualités mis à jour avec succès!');
+                        $this->redirectWithMessage(true, 'Ordre des actualités mis à jour avec succès!');
                     } else {
                         error_log("Reorder news failed: Invalid order data");
-                        $this->sendJsonResponse(false, 'Erreur : Données d\'ordre invalides.');
+                        $this->redirectWithMessage(false, 'Erreur : Données d\'ordre invalides.');
                     }
                 } else {
                     error_log("Unknown action: $action");
-                    $this->sendJsonResponse(false, 'Action non reconnue.');
+                    $this->redirectWithMessage(false, 'Action non reconnue.');
                 }
             } catch (Exception $e) {
                 error_log("Server error in content action $action: " . $e->getMessage());
-                $this->sendJsonResponse(false, 'Erreur serveur : ' . $e->getMessage());
+                $this->redirectWithMessage(false, 'Erreur serveur : ' . $e->getMessage());
             }
         }
 
-        // Load content
-        $stmt = $this->db->query("SELECT section, key_name, value FROM site_content ORDER BY section, key_name");
-        $content = [];
-        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-            $content[$row['section']][$row['key_name']] = $row['value'];
-        }
+        try {
+            $stmt = $this->db->query("SELECT section, key_name, value FROM site_content ORDER BY section, key_name");
+            $content = [];
+            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                $content[$row['section']][$row['key_name']] = $row['value'];
+            }
 
-        $services = $this->db->query("SELECT * FROM services WHERE is_active = 1 ORDER BY order_position")->fetchAll(PDO::FETCH_ASSOC);
-        $team = $this->db->query("SELECT * FROM team_members WHERE is_active = 1 ORDER BY order_position")->fetchAll(PDO::FETCH_ASSOC);
-        $news = $this->db->query("SELECT * FROM news WHERE is_active = 1 ORDER BY order_position")->fetchAll(PDO::FETCH_ASSOC);
+            $services = $this->db->query("SELECT * FROM services WHERE is_active = 1 ORDER BY order_position")->fetchAll(PDO::FETCH_ASSOC);
+            $team = $this->db->query("SELECT * FROM team_members WHERE is_active = 1 ORDER BY order_position")->fetchAll(PDO::FETCH_ASSOC);
+            $news = $this->db->query("SELECT * FROM news WHERE is_active = 1 ORDER BY order_position")->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Database error in content: " . $e->getMessage());
+            $error = 'Erreur serveur lors du chargement du contenu.';
+            include 'views/admin/error.php';
+            return;
+        }
 
         include 'views/admin/content.php';
     }
 
     public function contacts() {
         $this->requireAuth();
+        header('Cache-Control: no-cache, must-revalidate');
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            error_log("Contacts POST: " . json_encode($_POST));
             if (!verifyCSRFToken($_POST['csrf_token'] ?? '')) {
                 error_log("CSRF token validation failed in contacts");
-                $this->sendJsonResponse(false, 'Erreur de validation CSRF');
+                $this->redirectWithMessage(false, 'Erreur de validation CSRF', '/admin/contacts');
             }
 
-            $action = $_POST['action'] ?? '';
-            $id = $_POST['id'] ?? '';
+            $action = trim($_POST['action'] ?? '');
+            $id = trim($_POST['id'] ?? '');
 
             try {
                 if ($action === 'mark_read' && $id) {
                     $stmt = $this->db->prepare("UPDATE contacts SET status = 'read', updated_at = datetime('now') WHERE id = ?");
-                    $stmt->execute([$id]);
-                    $this->sendJsonResponse(true, 'Message marqué comme lu');
+                    if (!$stmt->execute([$id])) {
+                        error_log("Failed to mark contact as read: id=$id");
+                        $this->redirectWithMessage(false, 'Erreur : Échec du marquage comme lu.', '/admin/contacts');
+                    }
+                    $this->redirectWithMessage(true, 'Message marqué comme lu', '/admin/contacts');
                 } elseif ($action === 'mark_new' && $id) {
                     $stmt = $this->db->prepare("UPDATE contacts SET status = 'new', updated_at = datetime('now') WHERE id = ?");
-                    $stmt->execute([$id]);
-                    $this->sendJsonResponse(true, 'Message marqué comme nouveau');
+                    if (!$stmt->execute([$id])) {
+                        error_log("Failed to mark contact as new: id=$id");
+                        $this->redirectWithMessage(false, 'Erreur : Échec du marquage comme nouveau.', '/admin/contacts');
+                    }
+                    $this->redirectWithMessage(true, 'Message marqué comme nouveau', '/admin/contacts');
                 } elseif ($action === 'delete' && $id) {
-                    $stmt = $this->db->prepare("SELECT file_path FROM contact_files WHERE contact_id = ?");
+                    // Verify contact exists
+                    $stmt = $this->db->prepare("SELECT id FROM contacts WHERE id = ?");
                     $stmt->execute([$id]);
+                    if (!$stmt->fetch()) {
+                        error_log("Contact not found for id=$id");
+                        $this->redirectWithMessage(false, 'Erreur : Contact introuvable.', '/admin/contacts');
+                    }
+
+                    // Delete associated files
+                    $stmt = $this->db->prepare("SELECT file_path FROM contact_files WHERE contact_id = ?");
+                    if (!$stmt->execute([$id])) {
+                        error_log("Failed to select contact files for contact_id=$id");
+                        $this->redirectWithMessage(false, 'Erreur : Échec de la récupération des fichiers.', '/admin/contacts');
+                    }
                     $files = $stmt->fetchAll(PDO::FETCH_COLUMN);
                     foreach ($files as $file) {
-                        if (file_exists($_SERVER['DOCUMENT_ROOT'] . $file)) {
-                            unlink($_SERVER['DOCUMENT_ROOT'] . $file);
-                            error_log("Deleted contact file: $file");
+                        $file_path = $_SERVER['DOCUMENT_ROOT'] . $file;
+                        if (file_exists($file_path)) {
+                            if (!unlink($file_path)) {
+                                error_log("Failed to delete file: $file_path");
+                            } else {
+                                error_log("Deleted contact file: $file_path");
+                            }
                         }
                     }
                     $stmt = $this->db->prepare("DELETE FROM contact_files WHERE contact_id = ?");
-                    $stmt->execute([$id]);
+                    if (!$stmt->execute([$id])) {
+                        error_log("Failed to delete contact_files for contact_id=$id");
+                        $this->redirectWithMessage(false, 'Erreur : Échec de la suppression des fichiers.', '/admin/contacts');
+                    }
                     $stmt = $this->db->prepare("DELETE FROM contacts WHERE id = ?");
-                    $stmt->execute([$id]);
-                    $this->sendJsonResponse(true, 'Message supprimé');
+                    if (!$stmt->execute([$id])) {
+                        error_log("Failed to delete contact for id=$id");
+                        $this->redirectWithMessage(false, 'Erreur : Échec de la suppression du contact.', '/admin/contacts');
+                    }
+                    error_log("Contact deleted successfully: ID=$id");
+                    $this->redirectWithMessage(true, 'Message supprimé', '/admin/contacts');
                 } else {
-                    error_log("Unknown contacts action: $action");
-                    $this->sendJsonResponse(false, 'Action non reconnue.');
+                    error_log("Unknown or invalid contacts action: action=$action, id=$id");
+                    $this->redirectWithMessage(false, 'Action non reconnue ou ID manquant.', '/admin/contacts');
                 }
             } catch (Exception $e) {
                 error_log("Server error in contacts action $action: " . $e->getMessage());
-                $this->sendJsonResponse(false, 'Erreur serveur : ' . $e->getMessage());
+                $this->redirectWithMessage(false, 'Erreur serveur : ' . $e->getMessage(), '/admin/contacts');
             }
         }
 
-        $contacts = $this->db->query("
-            SELECT * FROM contacts 
-            ORDER BY created_at DESC
-        ")->fetchAll(PDO::FETCH_ASSOC);
+        try {
+            $contacts = $this->db->query("
+                SELECT * FROM contacts 
+                ORDER BY created_at DESC
+            ")->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Database error in contacts: " . $e->getMessage());
+            $error = 'Erreur serveur lors du chargement des contacts.';
+            include 'views/admin/error.php';
+            return;
+        }
 
         include 'views/admin/contacts.php';
     }
 
     public function messageDetail() {
         $this->requireAuth();
+        header('Cache-Control: no-cache, must-revalidate');
 
         $url = $_SERVER['REQUEST_URI'];
-        $parts = explode('/', $url);
+        $parts = explode('/', trim($url, '/'));
         $messageId = end($parts);
 
         if (!is_numeric($messageId)) {
+            error_log("Invalid message ID: $messageId");
             header('Location: /admin/contacts');
             exit;
         }
 
-        $stmt = $this->db->prepare("SELECT * FROM contacts WHERE id = ?");
-        $stmt->execute([$messageId]);
-        $contact = $stmt->fetch(PDO::FETCH_ASSOC);
+        try {
+            $stmt = $this->db->prepare("SELECT * FROM contacts WHERE id = ?");
+            $stmt->execute([$messageId]);
+            $contact = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        if (!$contact) {
-            header('Location: /admin/contacts');
-            exit;
+            if (!$contact) {
+                error_log("Contact not found for ID: $messageId");
+                header('Location: /admin/contacts');
+                exit;
+            }
+
+            $updateStmt = $this->db->prepare("UPDATE contacts SET status = 'read', updated_at = datetime('now') WHERE id = ?");
+            if (!$updateStmt->execute([$messageId])) {
+                error_log("Failed to mark contact as read in messageDetail: id=$messageId");
+            }
+
+            $filesStmt = $this->db->prepare("SELECT * FROM contact_files WHERE contact_id = ? ORDER BY uploaded_at");
+            $filesStmt->execute([$messageId]);
+            $files = $filesStmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Database error in messageDetail: " . $e->getMessage());
+            $error = 'Erreur serveur lors du chargement du message.';
+            include 'views/admin/error.php';
+            return;
         }
-
-        $updateStmt = $this->db->prepare("UPDATE contacts SET status = 'read', updated_at = datetime('now') WHERE id = ?");
-        $updateStmt->execute([$messageId]);
-
-        $filesStmt = $this->db->prepare("SELECT * FROM contact_files WHERE contact_id = ? ORDER BY uploaded_at");
-        $filesStmt->execute([$messageId]);
-        $files = $filesStmt->fetchAll(PDO::FETCH_ASSOC);
 
         include 'views/admin/message-detail.php';
     }
 
     public function settings() {
         $this->requireAuth();
+        header('Cache-Control: no-cache, must-revalidate');
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!verifyCSRFToken($_POST['csrf_token'] ?? '')) {
                 error_log("CSRF token validation failed in settings");
-                $this->sendJsonResponse(false, 'Erreur de validation CSRF');
+                $this->redirectWithMessage(false, 'Erreur de validation CSRF', '/admin/settings');
             }
 
             try {
-                // Handle settings update logic here
-                $this->sendJsonResponse(true, 'Paramètres mis à jour avec succès!');
+                // Add settings update logic here if needed
+                $this->redirectWithMessage(true, 'Paramètres mis à jour avec succès!', '/admin/settings');
             } catch (Exception $e) {
                 error_log("Server error in settings: " . $e->getMessage());
-                $this->sendJsonResponse(false, 'Erreur serveur : ' . $e->getMessage());
+                $this->redirectWithMessage(false, 'Erreur serveur : ' . $e->getMessage(), '/admin/settings');
             }
         }
 
@@ -556,6 +701,9 @@ class AdminController {
     }
 
     public function logout() {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
         session_destroy();
         header('Location: /admin');
         exit;

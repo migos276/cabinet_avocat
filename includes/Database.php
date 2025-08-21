@@ -39,7 +39,6 @@ class Database {
         try {
             $this->connection->beginTransaction();
 
-            // Create tables individually for better error handling
             $tables = [
                 "CREATE TABLE IF NOT EXISTS site_content (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -79,7 +78,7 @@ class Database {
                     name TEXT NOT NULL,
                     position TEXT NOT NULL,
                     description TEXT NOT NULL,
-                    image_path TEXT NOT NULL,
+                    image_path TEXT, -- Changed to allow NULL for cases where no image is uploaded
                     is_active INTEGER DEFAULT 1,
                     order_position INTEGER DEFAULT 0,
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -89,10 +88,10 @@ class Database {
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     title TEXT NOT NULL,
                     content TEXT NOT NULL,
-                    image_path TEXT,
+                    image_path TEXT, -- Changed to allow NULL for cases where no image is uploaded
                     publish_date DATETIME NOT NULL,
                     is_active INTEGER DEFAULT 1,
-                    order_position INTEGER,
+                    order_position INTEGER DEFAULT 0,
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
                 )",
@@ -133,7 +132,7 @@ class Database {
                 }
             }
             if (!$has_order_position) {
-                $this->connection->exec("ALTER TABLE news ADD COLUMN order_position INTEGER");
+                $this->connection->exec("ALTER TABLE news ADD COLUMN order_position INTEGER DEFAULT 0");
                 $this->connection->exec("UPDATE news SET order_position = id WHERE order_position IS NULL");
             }
 
@@ -141,10 +140,10 @@ class Database {
             $service_columns = $this->connection->query("PRAGMA table_info(services)")->fetchAll(PDO::FETCH_ASSOC);
             foreach ($service_columns as $col) {
                 if ($col['name'] === 'color' && $col['type'] === 'VARCHAR(7)') {
-                    $this->connection->exec("ALTER TABLE services RENAME COLUMN color TO old_color;");
-                    $this->connection->exec("ALTER TABLE services ADD COLUMN color VARCHAR(255) DEFAULT '#3b82f6';");
-                    $this->connection->exec("UPDATE services SET color = old_color;");
-                    $this->connection->exec("ALTER TABLE services DROP COLUMN old_color;");
+                    $this->connection->exec("ALTER TABLE services RENAME COLUMN color TO old_color");
+                    $this->connection->exec("ALTER TABLE services ADD COLUMN color VARCHAR(255) DEFAULT '#3b82f6'");
+                    $this->connection->exec("UPDATE services SET color = old_color");
+                    $this->connection->exec("ALTER TABLE services DROP COLUMN old_color");
                 }
             }
 
@@ -176,7 +175,7 @@ class Database {
                 $this->connection->exec($index);
             } catch (PDOException $e) {
                 error_log('Error creating index: ' . $e->getMessage());
-                throw $e; // Rethrow to ensure critical errors are not ignored
+                throw $e;
             }
         }
     }
@@ -284,20 +283,19 @@ class Database {
         $check = $this->connection->query("SELECT COUNT(*) FROM team_members")->fetchColumn();
         if ($check > 0) return;
 
-        // Only insert placeholder data if default images exist or use empty paths
         $defaultTeam = [
             [
                 'name' => 'Maître Jean Dupont',
                 'position' => 'Avocat Associé - Droit des Affaires',
                 'description' => 'Spécialisé en droit des sociétés et fusions-acquisitions, Maître Dupont accompagne les entreprises depuis plus de 15 ans.',
-                'image_path' => '', // Set to empty to avoid broken links
+                'image_path' => null, // Allow NULL for optional image
                 'order_position' => 1
             ],
             [
                 'name' => 'Maître Marie Martin',
                 'position' => 'Avocate Spécialisée - Droit de la Famille',
                 'description' => 'Experte en droit matrimonial et protection de l\'enfance, Maître Martin défend les intérêts familiaux avec passion.',
-                'image_path' => '',
+                'image_path' => null,
                 'order_position' => 2
             ]
         ];
@@ -328,7 +326,7 @@ class Database {
             [
                 'title' => 'Nouvelles Réglementations en Droit des Affaires',
                 'content' => 'Découvrez les dernières évolutions législatives affectant les entreprises en 2025.',
-                'image_path' => '',
+                'image_path' => null, // Allow NULL for optional image
                 'publish_date' => date('Y-m-d H:i:s'),
                 'order_position' => 1,
                 'is_active' => 1
@@ -336,7 +334,7 @@ class Database {
             [
                 'title' => 'Réforme du Droit de la Famille',
                 'content' => 'Une analyse approfondie des récentes modifications du droit matrimonial.',
-                'image_path' => '',
+                'image_path' => null,
                 'publish_date' => date('Y-m-d H:i:s', strtotime('-1 week')),
                 'order_position' => 2,
                 'is_active' => 1
@@ -369,11 +367,13 @@ class Database {
         $sql = "INSERT INTO admin_users (username, password, email, is_active) VALUES (?, ?, ?, 1)";
         $stmt = $this->connection->prepare($sql);
         try {
+            $defaultPassword = defined('ADMIN_PASSWORD') ? ADMIN_PASSWORD : 'admin123';
             $stmt->execute([
                 defined('ADMIN_USERNAME') ? ADMIN_USERNAME : 'admin',
-                password_hash(defined('ADMIN_PASSWORD') ? ADMIN_PASSWORD : 'admin123', PASSWORD_DEFAULT),
+                password_hash($defaultPassword, PASSWORD_DEFAULT),
                 defined('ADMIN_EMAIL') ? ADMIN_EMAIL : 'admin@cabinet-excellence.fr'
             ]);
+            error_log("Default admin user created with username: admin, password: $defaultPassword");
         } catch (PDOException $e) {
             error_log('Error inserting default admin: ' . $e->getMessage());
         }
