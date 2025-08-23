@@ -3,7 +3,7 @@ require_once 'includes/Database.php';
 
 class HomeController {
     private $db;
-    private $uploadDir = __DIR__ . '/public/uploads/contact_files/';
+    private $uploadDir;
     private $maxFileSize = 10 * 1024 * 1024; // 10MB
     private $allowedTypes = [
         'application/pdf',
@@ -15,10 +15,10 @@ class HomeController {
 
     public function __construct() {
         try {
+            $this->uploadDir = $_SERVER['DOCUMENT_ROOT'] . '/public/uploads/contact_files/';
             $database = new Database();
             $this->db = $database->getConnection();
             $this->ensureUploadDirectory();
-            $this->ensureDefaultData();
         } catch (Exception $e) {
             error_log("HomeController Constructor Error: " . $e->getMessage());
             http_response_code(500);
@@ -32,26 +32,22 @@ class HomeController {
             $services = $this->getServices();
             $team = $this->getTeam();
             $news = $this->getNews();
+            $appointment_slots = $this->getAvailableAppointmentSlots();
 
-            // Check for critical data
-            if (empty($content) || empty($services) || empty($team) || empty($news)) {
-                error_log("Données critiques manquantes, initialisation des valeurs par défaut");
-                $this->forceResetData();
-                $content = $this->getContent();
-                $services = $this->getServices();
-                $team = $this->getTeam();
-                $news = $this->getNews();
+            // Validate expected structure to prevent view errors
+            if (!is_array($content) || !is_array($services) || !is_array($team) || !is_array($news) || !is_array($appointment_slots)) {
+                error_log("Invalid data structure in HomeController::index");
+                throw new Exception("Données invalides récupérées depuis la base de données");
             }
 
-            // Include the view
             include 'views/home.php';
-
         } catch (Exception $e) {
             error_log("HomeController::index Error: " . $e->getMessage());
             $content = $this->getDefaultContent();
             $services = $this->getDefaultServices();
             $team = $this->getDefaultTeam();
             $news = $this->getDefaultNews();
+            $appointment_slots = [];
             include 'views/home.php';
         }
     }
@@ -63,16 +59,21 @@ class HomeController {
 
         try {
             $formData = $this->validateContactForm();
+            $this->db->beginTransaction();
             $contactId = $this->saveContact($formData);
             $uploadedFiles = $this->handleFileUploads($contactId);
 
-            // Handle appointment request
             $message = "Message envoyé avec succès";
             if (isset($formData['appointment_requested']) && $formData['appointment_requested'] === '1') {
-                if ($formData['payment_method'] === 'online') {
-                    $message = "Paiement effectué avec succès ! Votre rendez-vous est confirmé. Vous recevrez un email avec les créneaux disponibles.";
+                $appointmentId = $this->saveAppointment($contactId, $formData);
+                if ($appointmentId) {
+                    $stmt = $this->db->prepare("UPDATE contacts SET appointment_id = :appointment_id WHERE id = :contact_id");
+                    $stmt->execute([':appointment_id' => $appointmentId, ':contact_id' => $contactId]);
+                    $message = $formData['payment_method'] === 'online'
+                        ? "Paiement effectué avec succès ! Votre rendez-vous est confirmé."
+                        : "Demande de rendez-vous envoyée ! Nous vous contacterons pour confirmer.";
                 } else {
-                    $message = "Demande de rendez-vous envoyée ! Nous vous contacterons pour confirmer votre créneau.";
+                    $message = "Message envoyé, mais échec de la création du rendez-vous.";
                 }
             }
 
@@ -80,8 +81,10 @@ class HomeController {
                 $message .= " (" . count($uploadedFiles) . " fichier(s) joint(s))";
             }
 
+            $this->db->commit();
             return $this->sendJsonResponse(true, $message, ['uploaded_files' => count($uploadedFiles)]);
         } catch (Exception $e) {
+            $this->db->rollBack();
             error_log("HomeController::handleContact Error: " . $e->getMessage());
             return $this->sendJsonResponse(false, "Erreur: " . $e->getMessage(), [], 400);
         }
@@ -101,11 +104,27 @@ class HomeController {
             $errors[] = "Format d'email invalide";
         }
 
-        // Validate appointment fields if requested
         $appointmentRequested = isset($_POST['appointment_requested']) && $_POST['appointment_requested'] === '1';
         if ($appointmentRequested) {
+            if (empty($_POST['slot_id'])) {
+                $errors[] = "Sélection d'un créneau de rendez-vous requis";
+            } else {
+                $slotId = filter_input(INPUT_POST, 'slot_id', FILTER_VALIDATE_INT);
+                if ($slotId === false || $slotId <= 0) {
+                    $errors[] = "Identifiant de créneau invalide";
+                } else {
+                    $stmt = $this->db->prepare("SELECT id FROM appointment_slots WHERE id = :id AND is_booked = 0 AND start_time > NOW()");
+                    $stmt->execute([':id' => $slotId]);
+                    if (!$stmt->fetch()) {
+                        $errors[] = "Créneau de rendez-vous invalide ou déjà réservé";
+                    }
+                }
+            }
+
             if (empty($_POST['payment_method'])) {
                 $errors[] = "Mode de paiement requis pour le rendez-vous";
+            } elseif (!in_array($_POST['payment_method'], ['online', 'in_person'])) {
+                $errors[] = "Mode de paiement invalide";
             } elseif ($_POST['payment_method'] === 'online') {
                 $paymentFields = ['cardNumber', 'cardExpiry', 'cardCvc', 'cardName'];
                 foreach ($paymentFields as $field) {
@@ -113,17 +132,14 @@ class HomeController {
                         $errors[] = "Le champ $field est requis pour le paiement en ligne";
                     }
                 }
-                // Basic card number validation
-                $cardNumber = str_replace(' ', '', $_POST['cardNumber']);
+                $cardNumber = str_replace(' ', '', $_POST['cardNumber'] ?? '');
                 if (!preg_match('/^\d{16}$/', $cardNumber)) {
                     $errors[] = "Numéro de carte invalide";
                 }
-                // Basic expiry date validation
-                if (!preg_match('/^\d{2}\/\d{2}$/', $_POST['cardExpiry'])) {
+                if (!preg_match('/^\d{2}\/\d{2}$/', $_POST['cardExpiry'] ?? '')) {
                     $errors[] = "Date d'expiration invalide";
                 }
-                // Basic CVC validation
-                if (!preg_match('/^\d{3,4}$/', $_POST['cardCvc'])) {
+                if (!preg_match('/^\d{3,4}$/', $_POST['cardCvc'] ?? '')) {
                     $errors[] = "Code CVC invalide";
                 }
             }
@@ -134,13 +150,14 @@ class HomeController {
         }
 
         return [
-            'name' => filter_input(INPUT_POST, 'name', FILTER_SANITIZE_STRING),
+            'name' => htmlspecialchars($_POST['name'] ?? '', ENT_QUOTES, 'UTF-8'),
             'email' => filter_input(INPUT_POST, 'email', FILTER_SANITIZE_EMAIL),
-            'phone' => filter_input(INPUT_POST, 'phone', FILTER_SANITIZE_STRING),
-            'subject' => filter_input(INPUT_POST, 'subject', FILTER_SANITIZE_STRING),
-            'message' => filter_input(INPUT_POST, 'message', FILTER_SANITIZE_STRING),
+            'phone' => htmlspecialchars($_POST['phone'] ?? '', ENT_QUOTES, 'UTF-8'),
+            'subject' => htmlspecialchars($_POST['subject'] ?? '', ENT_QUOTES, 'UTF-8'),
+            'message' => htmlspecialchars($_POST['message'] ?? '', ENT_QUOTES, 'UTF-8'),
             'appointment_requested' => $appointmentRequested ? '1' : '0',
-            'payment_method' => filter_input(INPUT_POST, 'payment_method', FILTER_SANITIZE_STRING),
+            'payment_method' => htmlspecialchars($_POST['payment_method'] ?? '', ENT_QUOTES, 'UTF-8'),
+            'slot_id' => $appointmentRequested ? filter_input(INPUT_POST, 'slot_id', FILTER_VALIDATE_INT) : null
         ];
     }
 
@@ -160,46 +177,93 @@ class HomeController {
         return $this->db->lastInsertId();
     }
 
+    private function saveAppointment($contactId, $formData) {
+        if (!$formData['appointment_requested'] || !$formData['slot_id']) {
+            return null;
+        }
+
+        $status = $formData['payment_method'] === 'online' ? 'confirmed' : 'pending';
+        $sql = "INSERT INTO appointments (contact_id, slot_id, status, created_at) 
+                VALUES (:contact_id, :slot_id, :status, NOW())";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([
+            ':contact_id' => $contactId,
+            ':slot_id' => $formData['slot_id'],
+            ':status' => $status
+        ]);
+        $appointmentId = $this->db->lastInsertId();
+
+        $sql = "UPDATE appointment_slots SET is_booked = 1 WHERE id = :slot_id";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([':slot_id' => $formData['slot_id']]);
+
+        return $appointmentId;
+    }
+
     private function handleFileUploads($contactId) {
         if (empty($_FILES['documents']['name'][0])) {
             return [];
         }
 
+        if (!extension_loaded('fileinfo')) {
+            error_log("Fileinfo extension not loaded");
+            throw new Exception("Erreur serveur: extension fileinfo requise");
+        }
+
+        $finfo = finfo_open(FILEINFO_MIME_TYPE);
         $uploadedFiles = [];
+        $errors = [];
+
         foreach ($_FILES['documents']['name'] as $key => $name) {
             if ($_FILES['documents']['error'][$key] !== UPLOAD_ERR_OK) {
+                $errors[] = "Erreur de téléversement pour le fichier: $name (code: {$_FILES['documents']['error'][$key]})";
                 continue;
             }
 
             $file = [
-                'name' => $_FILES['documents']['name'][$key],
-                'type' => $_FILES['documents']['type'][$key],
+                'name' => $name,
+                'type' => finfo_file($finfo, $_FILES['documents']['tmp_name'][$key]),
                 'tmp_name' => $_FILES['documents']['tmp_name'][$key],
                 'size' => $_FILES['documents']['size'][$key]
             ];
 
-            if (!$this->validateFile($file)) {
-                continue;
-            }
+            try {
+                if (!$this->validateFile($file)) {
+                    $errors[] = "Fichier invalide: $name";
+                    continue;
+                }
 
-            $newFileName = uniqid('doc_') . '_' . preg_replace('/[^A-Za-z0-9\.\-_]/', '', $file['name']);
-            $destination = $this->uploadDir . $newFileName;
+                $ext = pathinfo($file['name'], PATHINFO_EXTENSION);
+                $newFileName = uniqid('doc_') . '.' . preg_replace('/[^a-zA-Z0-9]/', '', $ext);
+                $destination = $this->uploadDir . $newFileName;
 
-            if (move_uploaded_file($file['tmp_name'], $destination)) {
-                $sql = "INSERT INTO contact_files (contact_id, original_name, file_name, file_path, file_size, file_type, created_at) 
-                        VALUES (:contact_id, :original_name, :file_name, :file_path, :file_size, :file_type, NOW())";
-                $stmt = $this->db->prepare($sql);
-                $stmt->execute([
-                    ':contact_id' => $contactId,
-                    ':original_name' => $file['name'],
-                    ':file_name' => $newFileName,
-                    ':file_path' => '/public/uploads/contact_files/' . $newFileName,
-                    ':file_size' => $file['size'],
-                    ':file_type' => $file['type']
-                ]);
-                $uploadedFiles[] = $newFileName;
+                if (move_uploaded_file($file['tmp_name'], $destination)) {
+                    $sql = "INSERT INTO contact_files (contact_id, original_name, file_name, file_path, file_size, file_type, uploaded_at) 
+                            VALUES (:contact_id, :original_name, :file_name, :file_path, :file_size, :file_type, NOW())";
+                    $stmt = $this->db->prepare($sql);
+                    $stmt->execute([
+                        ':contact_id' => $contactId,
+                        ':original_name' => $file['name'],
+                        ':file_name' => $newFileName,
+                        ':file_path' => '/public/uploads/contact_files/' . $newFileName,
+                        ':file_size' => $file['size'],
+                        ':file_type' => $file['type']
+                    ]);
+                    $uploadedFiles[] = $newFileName;
+                } else {
+                    $errors[] = "Échec du déplacement du fichier: $name";
+                }
+            } catch (Exception $e) {
+                $errors[] = "Erreur avec le fichier $name: " . $e->getMessage();
             }
         }
+
+        finfo_close($finfo);
+
+        if (!empty($errors)) {
+            error_log("File upload errors: " . implode(', ', $errors));
+        }
+
         return $uploadedFiles;
     }
 
@@ -209,6 +273,9 @@ class HomeController {
         }
         if ($file['size'] > $this->maxFileSize) {
             throw new Exception("Fichier trop volumineux: {$file['name']} (Max: 10MB)");
+        }
+        if ($file['size'] <= 0) {
+            throw new Exception("Fichier vide: {$file['name']}");
         }
         return true;
     }
@@ -222,6 +289,11 @@ class HomeController {
         if (!is_writable($this->uploadDir)) {
             throw new Exception("Le répertoire d'upload n'est pas accessible en écriture: {$this->uploadDir}");
         }
+    }
+
+    private function getAvailableAppointmentSlots() {
+        $stmt = $this->db->query("SELECT id, start_time, end_time FROM appointment_slots WHERE is_booked = 0 AND start_time > NOW() ORDER BY start_time ASC");
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
     private function getContent() {
@@ -243,7 +315,8 @@ class HomeController {
         $stmt = $this->db->query("SELECT * FROM team_members WHERE is_active = 1 ORDER BY order_position");
         $team = $stmt->fetchAll(PDO::FETCH_ASSOC);
         foreach ($team as &$member) {
-            if (empty($member['image_path']) || !file_exists($_SERVER['DOCUMENT_ROOT'] . $member['image_path'])) {
+            $imagePath = $member['image_path'] ?? '';
+            if (empty($imagePath) || !file_exists($_SERVER['DOCUMENT_ROOT'] . $imagePath)) {
                 $member['image_path'] = '/public/uploads/team/default_team_member.jpeg';
             }
         }
@@ -254,222 +327,44 @@ class HomeController {
         $stmt = $this->db->query("SELECT * FROM news WHERE is_active = 1 ORDER BY publish_date DESC LIMIT 3");
         $news = $stmt->fetchAll(PDO::FETCH_ASSOC);
         foreach ($news as &$item) {
-            if (empty($item['image_path']) || !file_exists($_SERVER['DOCUMENT_ROOT'] . $item['image_path'])) {
+            $imagePath = $item['image_path'] ?? '';
+            if (empty($imagePath) || !file_exists($_SERVER['DOCUMENT_ROOT'] . $imagePath)) {
                 $item['image_path'] = '/public/uploads/news/default_news.jpg';
             }
         }
         return !empty($news) ? $news : $this->getDefaultNews();
     }
 
-    private function ensureDefaultData() {
-        $serviceCount = $this->db->query("SELECT COUNT(*) FROM services")->fetchColumn();
-        $teamCount = $this->db->query("SELECT COUNT(*) FROM team_members")->fetchColumn();
-        $contentCount = $this->db->query("SELECT COUNT(*) FROM site_content")->fetchColumn();
-        $newsCount = $this->db->query("SELECT COUNT(*) FROM news")->fetchColumn();
-
-        if ($serviceCount == 0) $this->insertDefaultServices();
-        if ($teamCount == 0) $this->insertDefaultTeam();
-        if ($contentCount == 0) $this->insertDefaultContent();
-        if ($newsCount == 0) $this->insertDefaultNews();
-    }
-
-    private function forceResetData() {
-        $this->db->exec("DELETE FROM services");
-        $this->db->exec("DELETE FROM team_members");
-        $this->db->exec("DELETE FROM site_content");
-        $this->db->exec("DELETE FROM news");
-        $this->insertDefaultServices();
-        $this->insertDefaultTeam();
-        $this->insertDefaultContent();
-        $this->insertDefaultNews();
-    }
-
-    private function insertDefaultContent() {
-        $defaultContent = [
-            ['hero', 'title', 'Excellence Juridique à Votre Service'],
-            ['hero', 'subtitle', 'Depuis plus de 20 ans, nous accompagnons nos clients avec expertise, intégrité et dévouement dans tous leurs défis juridiques les plus complexes.'],
-            ['about', 'title', 'Votre Réussite, Notre Mission'],
-            ['about', 'subtitle', 'Fort d\'une expérience reconnue et d\'une approche personnalisée, notre cabinet vous offre un accompagnement juridique d\'excellence adapté à vos besoins spécifiques.'],
-            ['services', 'title', 'Domaines d\'Expertise'],
-            ['services', 'subtitle', 'Une expertise reconnue dans des domaines juridiques essentiels pour répondre à tous vos besoins'],
-            ['team', 'title', 'Des Experts à Vos Côtés'],
-            ['team', 'subtitle', 'Des avocats expérimentés et passionnés, reconnus pour leur expertise et leur engagement'],
-            ['contact', 'title', 'Parlons de Votre Situation'],
-            ['contact', 'subtitle', 'Bénéficiez d\'un premier échange gratuit pour évaluer vos besoins juridiques']
-        ];
-
-        $sql = "INSERT INTO site_content (section, key_name, value) VALUES (?, ?, ?)";
-        $stmt = $this->db->prepare($sql);
-        foreach ($defaultContent as $content) {
-            $stmt->execute($content);
-        }
-    }
-
-    private function insertDefaultServices() {
-        $defaultServices = [
-            [
-                'title' => 'Droit des Affaires',
-                'description' => 'Accompagnement juridique complet pour les entreprises, de la création aux opérations complexes.',
-                'icon' => 'fas fa-briefcase',
-                'color' => 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
-                'order_position' => 1,
-                'detailed_content' => $this->getDefaultDetailedContent()
-            ],
-            [
-                'title' => 'Droit de la Famille',
-                'description' => 'Conseil et représentation dans tous les aspects du droit familial et matrimonial.',
-                'icon' => 'fas fa-heart',
-                'color' => 'linear-gradient(135deg, #ef4444, #dc2626)',
-                'order_position' => 2,
-                'detailed_content' => $this->getDefaultDetailedContent()
-            ],
-            [
-                'title' => 'Droit Immobilier',
-                'description' => 'Expertise en transactions immobilières, copropriété et contentieux immobiliers.',
-                'icon' => 'fas fa-home',
-                'color' => 'linear-gradient(135deg, #10b981, #059669)',
-                'order_position' => 3,
-                'detailed_content' => $this->getDefaultDetailedContent()
-            ],
-            [
-                'title' => 'Droit du Travail',
-                'description' => 'Protection des droits des salariés et conseil aux employeurs en droit social.',
-                'icon' => 'fas fa-users',
-                'color' => 'linear-gradient(135deg, #f59e0b, #d97706)',
-                'order_position' => 4,
-                'detailed_content' => $this->getDefaultDetailedContent()
-            ],
-            [
-                'title' => 'Droit Pénal',
-                'description' => 'Défense pénale et représentation dans les affaires criminelles et délictuelles.',
-                'icon' => 'fas fa-gavel',
-                'color' => 'linear-gradient(135deg, #8b5cf6, #7c3aed)',
-                'order_position' => 5,
-                'detailed_content' => $this->getDefaultDetailedContent()
-            ],
-            [
-                'title' => 'Droit des Assurances',
-                'description' => 'Conseils et litiges en matière d\'assurances pour particuliers et professionnels.',
-                'icon' => 'fas fa-shield-alt',
-                'color' => 'linear-gradient(135deg, #6b7280, #4b5563)',
-                'order_position' => 6,
-                'detailed_content' => $this->getDefaultDetailedContent()
-            ]
-        ];
-
-        $sql = "INSERT INTO services (title, description, icon, color, order_position, detailed_content, is_active) 
-                VALUES (?, ?, ?, ?, ?, ?, 1)";
-        $stmt = $this->db->prepare($sql);
-        foreach ($defaultServices as $service) {
-            $stmt->execute([
-                $service['title'],
-                $service['description'],
-                $service['icon'],
-                $service['color'],
-                $service['order_position'],
-                $service['detailed_content']
-            ]);
-        }
-    }
-
-    private function insertDefaultTeam() {
-        $defaultTeam = [
-            [
-                'name' => 'Maître Jean Dupont',
-                'position' => 'Avocat Associé - Droit des Affaires',
-                'description' => 'Spécialisé en droit des sociétés et fusions-acquisitions, Maître Dupont accompagne les entreprises depuis plus de 15 ans.',
-                'image_path' => '/public/uploads/team/avocat3.jpeg',
-                'order_position' => 1
-            ],
-            [
-                'name' => 'Maître Marie Martin',
-                'position' => 'Avocate Spécialisée - Droit de la Famille',
-                'description' => 'Experte en droit matrimonial et protection de l\'enfance, Maître Martin défend les intérêts familiaux avec passion.',
-                'image_path' => '/public/uploads/team/avocat4.jpeg',
-                'order_position' => 2
-            ],
-            [
-                'name' => 'Maître Sophie Laurent',
-                'position' => 'Avocate - Droit Immobilier',
-                'description' => 'Spécialisée en transactions et litiges immobiliers, Maître Laurent offre une expertise pointue depuis 10 ans.',
-                'image_path' => '/public/uploads/team/avocat5.jpeg',
-                'order_position' => 3
-            ]
-        ];
-
-        $sql = "INSERT INTO team_members (name, position, description, image_path, order_position, is_active) 
-                VALUES (?, ?, ?, ?, ?, 1)";
-        $stmt = $this->db->prepare($sql);
-        foreach ($defaultTeam as $member) {
-            $stmt->execute([
-                $member['name'],
-                $member['position'],
-                $member['description'],
-                $member['image_path'],
-                $member['order_position']
-            ]);
-        }
-    }
-
-    private function insertDefaultNews() {
-        $defaultNews = [
-            [
-                'title' => 'Nouvelles Réglementations en Droit des Affaires',
-                'content' => 'Découvrez les dernières évolutions législatives affectant les entreprises en 2025. Nos experts analysent les impacts pour votre activité.',
-                'image_path' => '/public/uploads/news/news1.jpg',
-                'publish_date' => date('Y-m-d H:i:s'),
-                'is_active' => 1
-            ],
-            [
-                'title' => 'Réforme du Droit de la Famille',
-                'content' => 'Une analyse approfondie des récentes modifications du droit matrimonial et leurs implications pour les familles.',
-                'image_path' => '/public/uploads/news/news2.jpg',
-                'publish_date' => date('Y-m-d H:i:s', strtotime('-1 week')),
-                'is_active' => 1
-            ],
-            [
-                'title' => 'Actualités en Droit Immobilier',
-                'content' => 'Restez informé des dernières tendances et réglementations en matière de transactions immobilières.',
-                'image_path' => '/public/uploads/news/news3.jpg',
-                'publish_date' => date('Y-m-d H:i:s', strtotime('-2 weeks')),
-                'is_active' => 1
-            ]
-        ];
-
-        $sql = "INSERT INTO news (title, content, image_path, publish_date, is_active) VALUES (?, ?, ?, ?, ?)";
-        $stmt = $this->db->prepare($sql);
-        foreach ($defaultNews as $news) {
-            $stmt->execute([
-                $news['title'],
-                $news['content'],
-                $news['image_path'],
-                $news['publish_date'],
-                $news['is_active']
-            ]);
-        }
-    }
-
     private function getDefaultContent() {
         return [
             'hero' => [
-                'title' => 'Excellence Juridique à Votre Service',
-                'subtitle' => 'Depuis plus de 20 ans, nous accompagnons nos clients avec expertise, intégrité et dévouement dans tous leurs défis juridiques les plus complexes.'
+                'title' => defined('SITE_NAME') ? SITE_NAME : 'Cabinet Excellence',
+                'subtitle' => 'Votre partenaire de confiance pour tous vos besoins juridiques'
             ],
             'about' => [
-                'title' => 'Votre Réussite, Notre Mission',
-                'subtitle' => 'Fort d\'une expérience reconnue et d\'une approche personnalisée, notre cabinet vous offre un accompagnement juridique d\'excellence adapté à vos besoins spécifiques.'
+                'title' => 'À propos de nous',
+                'subtitle' => 'Fort de plus de 20 ans d\'expérience, notre cabinet vous accompagne avec professionnalisme.'
             ],
             'services' => [
-                'title' => 'Domaines d\'Expertise',
-                'subtitle' => 'Une expertise reconnue dans des domaines juridiques essentiels pour répondre à tous vos besoins'
+                'title' => 'Nos services',
+                'subtitle' => 'Des domaines d\'expertise variés pour répondre à tous vos besoins'
             ],
             'team' => [
-                'title' => 'Des Experts à Vos Côtés',
-                'subtitle' => 'Des avocats expérimentés et passionnés, reconnus pour leur expertise et leur engagement'
+                'title' => 'Notre équipe',
+                'subtitle' => 'Des experts à votre service'
+            ],
+            'news' => [
+                'title' => 'Nos Dernières Actualités',
+                'subtitle' => 'Restez informé des dernières nouvelles juridiques.'
             ],
             'contact' => [
-                'title' => 'Parlons de Votre Situation',
-                'subtitle' => 'Bénéficiez d\'un premier échange gratuit pour évaluer vos besoins juridiques'
+                'title' => 'Contactez-nous',
+                'address' => '123 Avenue de la Justice, 75001 Paris',
+                'phone' => '+33 1 23 45 67 89',
+                'email' => defined('ADMIN_EMAIL') ? ADMIN_EMAIL : 'contact@cabinet-excellence.fr'
+            ],
+            'footer' => [
+                'copyright' => '© ' . date('Y') . ' ' . (defined('SITE_NAME') ? SITE_NAME : 'Cabinet Excellence') . '. Tous droits réservés.'
             ]
         ];
     }
@@ -479,56 +374,42 @@ class HomeController {
             [
                 'id' => 1,
                 'title' => 'Droit des Affaires',
-                'description' => 'Accompagnement juridique complet pour les entreprises, de la création aux opérations complexes.',
+                'description' => 'Accompagnement juridique complet pour les entreprises.',
                 'icon' => 'fas fa-briefcase',
-                'color' => 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+                'color' => '#3b82f6',
                 'order_position' => 1,
-                'is_active' => 1
+                'is_active' => 1,
+                'detailed_content' => $this->getDefaultDetailedContent()
             ],
             [
                 'id' => 2,
                 'title' => 'Droit de la Famille',
-                'description' => 'Conseil et représentation dans tous les aspects du droit familial et matrimonial.',
+                'description' => 'Conseil et représentation dans tous les aspects du droit familial.',
                 'icon' => 'fas fa-heart',
-                'color' => 'linear-gradient(135deg, #ef4444, #dc2626)',
+                'color' => '#ef4444',
                 'order_position' => 2,
-                'is_active' => 1
+                'is_active' => 1,
+                'detailed_content' => $this->getDefaultDetailedContent()
             ],
             [
                 'id' => 3,
                 'title' => 'Droit Immobilier',
-                'description' => 'Expertise en transactions immobilières, copropriété et contentieux immobiliers.',
+                'description' => 'Expertise en transactions immobilières et contentieux.',
                 'icon' => 'fas fa-home',
-                'color' => 'linear-gradient(135deg, #10b981, #059669)',
+                'color' => '#10b981',
                 'order_position' => 3,
-                'is_active' => 1
+                'is_active' => 1,
+                'detailed_content' => $this->getDefaultDetailedContent()
             ],
             [
                 'id' => 4,
                 'title' => 'Droit du Travail',
-                'description' => 'Protection des droits des salariés et conseil aux employeurs en droit social.',
+                'description' => 'Protection des droits des salariés et conseil aux employeurs.',
                 'icon' => 'fas fa-users',
-                'color' => 'linear-gradient(135deg, #f59e0b, #d97706)',
+                'color' => '#f59e0b',
                 'order_position' => 4,
-                'is_active' => 1
-            ],
-            [
-                'id' => 5,
-                'title' => 'Droit Pénal',
-                'description' => 'Défense pénale et représentation dans les affaires criminelles et délictuelles.',
-                'icon' => 'fas fa-gavel',
-                'color' => 'linear-gradient(135deg, #8b5cf6, #7c3aed)',
-                'order_position' => 5,
-                'is_active' => 1
-            ],
-            [
-                'id' => 6,
-                'title' => 'Droit des Assurances',
-                'description' => 'Conseils et litiges en matière d\'assurances pour particuliers et professionnels.',
-                'icon' => 'fas fa-shield-alt',
-                'color' => 'linear-gradient(135deg, #6b7280, #4b5563)',
-                'order_position' => 6,
-                'is_active' => 1
+                'is_active' => 1,
+                'detailed_content' => $this->getDefaultDetailedContent()
             ]
         ];
     }
@@ -539,8 +420,8 @@ class HomeController {
                 'id' => 1,
                 'name' => 'Maître Jean Dupont',
                 'position' => 'Avocat Associé - Droit des Affaires',
-                'description' => 'Spécialisé en droit des sociétés et fusions-acquisitions, Maître Dupont accompagne les entreprises depuis plus de 15 ans.',
-                'image_path' => '/public/uploads/team/avocat4.jpg',
+                'description' => 'Spécialisé en droit des sociétés depuis plus de 15 ans.',
+                'image_path' => '/public/uploads/team/default_team_member.jpeg',
                 'order_position' => 1,
                 'is_active' => 1
             ],
@@ -548,18 +429,9 @@ class HomeController {
                 'id' => 2,
                 'name' => 'Maître Marie Martin',
                 'position' => 'Avocate Spécialisée - Droit de la Famille',
-                'description' => 'Experte en droit matrimonial et protection de l\'enfance, Maître Martin défend les intérêts familiaux avec passion.',
-                'image_path' => '/public/uploads/team/avocat5.jpg',
+                'description' => 'Experte en droit matrimonial et protection de l\'enfance.',
+                'image_path' => '/public/uploads/team/default_team_member.jpeg',
                 'order_position' => 2,
-                'is_active' => 1
-            ],
-            [
-                'id' => 3,
-                'name' => 'Maître Sophie Laurent',
-                'position' => 'Avocate - Droit Immobilier',
-                'description' => 'Spécialisée en transactions et litiges immobiliers, Maître Laurent offre une expertise pointue depuis 10 ans.',
-                'image_path' => '/public/uploads/team/avocat6.jpg',
-                'order_position' => 3,
                 'is_active' => 1
             ]
         ];
@@ -570,25 +442,17 @@ class HomeController {
             [
                 'id' => 1,
                 'title' => 'Nouvelles Réglementations en Droit des Affaires',
-                'content' => 'Découvrez les dernières évolutions législatives affectant les entreprises en 2025. Nos experts analysent les impacts pour votre activité.',
-                'image_path' => '/public/uploads/news/news1.jpg',
+                'content' => 'Découvrez les dernières évolutions législatives affectant les entreprises en 2025.',
+                'image_path' => '/public/uploads/news/default_news.jpg',
                 'publish_date' => date('Y-m-d H:i:s'),
                 'is_active' => 1
             ],
             [
                 'id' => 2,
                 'title' => 'Réforme du Droit de la Famille',
-                'content' => 'Une analyse approfondie des récentes modifications du droit matrimonial et leurs implications pour les familles.',
-                'image_path' => '/public/uploads/news/news2.jpg',
+                'content' => 'Une analyse approfondie des récentes modifications du droit matrimonial.',
+                'image_path' => '/public/uploads/news/default_news.jpg',
                 'publish_date' => date('Y-m-d H:i:s', strtotime('-1 week')),
-                'is_active' => 1
-            ],
-            [
-                'id' => 3,
-                'title' => 'Actualités en Droit Immobilier',
-                'content' => 'Restez informé des dernières tendances et réglementations en matière de transactions immobilières.',
-                'image_path' => '/public/uploads/news/news3.jpg',
-                'publish_date' => date('Y-m-d H:i:s', strtotime('-2 weeks')),
                 'is_active' => 1
             ]
         ];
@@ -617,12 +481,12 @@ class HomeController {
 
     private function sendJsonResponse($success, $message, $data = [], $statusCode = 200) {
         http_response_code($statusCode);
-        header('Content-Type: application/json');
+        header('Content-Type: application/json; charset=utf-8');
         echo json_encode([
             'success' => $success,
             'message' => $message,
             'data' => $data
-        ]);
+        ], JSON_UNESCAPED_UNICODE);
         exit;
     }
 }

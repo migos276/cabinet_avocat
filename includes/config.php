@@ -1,76 +1,93 @@
 <?php
-// Start session with secure settings
+// Configuration de base
+define('ENV', 'development'); // 'development' ou 'production'
+
+// Démarrer la session avec des paramètres sécurisés
 if (session_status() === PHP_SESSION_NONE) {
+    $isSecure = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443;
     session_start([
         'name' => 'cabinet_session',
         'cookie_httponly' => true,
-        'cookie_secure' => isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on',
-        'cookie_samesite' => 'Strict'
+        'cookie_secure' => $isSecure,
+        'cookie_samesite' => 'Strict',
+        'cookie_lifetime' => 86400 // 24 heures
     ]);
 }
 
-// SQLite Database configuration
-define('DB_NAME', __DIR__ . '/../database/cabinet_excellence.db');
+// Configuration de la base de données SQLite
+define('DB_NAME', __DIR__ . '/database/cabinet_excellence.db');
 define('DB_TYPE', 'sqlite');
 
-// Site configuration
+// Configuration du site
 define('SITE_NAME', 'Cabinet Juridique Excellence');
-define('SITE_URL', isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https://' : 'http://' . $_SERVER['HTTP_HOST']);
+define('SITE_URL', (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443 ? 'https://' : 'http://') . $_SERVER['HTTP_HOST'] . '/');
 define('ADMIN_EMAIL', 'admin@cabinet-excellence.fr');
 define('ADMIN_USERNAME', 'admin');
-define('ADMIN_PASSWORD', 'admin123'); // Change to a secure password in production
+define('ADMIN_PASSWORD_HASH', password_hash('secure_password_123', PASSWORD_DEFAULT)); // Utiliser un hash sécurisé
 
-// Paths (absolute paths)
-define('ROOT_PATH', __DIR__ . '/');
-define('UPLOAD_PATH', ROOT_PATH . '/public/uploads/');
-define('CONTACT_UPLOAD_PATH', '/uploads/contacts/');
-define('TEAM_UPLOAD_PATH', '/uploads/team/');
-define('NEWS_UPLOAD_PATH', '/Uploads/news/');
-define('VIEWS_PATH', ROOT_PATH . 'views/');
+// Chemins absolus
+define('ROOT_PATH', dirname(__DIR__) . '/');
 define('INCLUDES_PATH', __DIR__ . '/');
+define('CONTROLLERS_PATH', ROOT_PATH . 'controllers/');
+define('VIEWS_PATH', ROOT_PATH . 'views/');
+define('PUBLIC_PATH', ROOT_PATH . 'public/');
+define('UPLOAD_PATH', PUBLIC_PATH . 'uploads/');
+define('CONTACT_UPLOAD_PATH', UPLOAD_PATH . 'contact_files/');
+define('TEAM_UPLOAD_PATH', UPLOAD_PATH . 'team/');
+define('NEWS_UPLOAD_PATH', UPLOAD_PATH . 'news/');
+define('DEFAULT_TEAM_IMAGE', PUBLIC_PATH . 'uploads/team/default_team_member.jpeg');
+define('DEFAULT_NEWS_IMAGE', PUBLIC_PATH . 'uploads/news/default_news.jpg');
 
-// File upload configuration
-define('MAX_FILE_SIZE', 10 * 1024 * 1024); // 10MB in bytes
+// Configuration des uploads
+define('MAX_FILE_SIZE', 10 * 1024 * 1024); // 10MB en octets
 define('ALLOWED_FILE_TYPES', [
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     'image/jpeg',
     'image/png'
 ]);
-define('ALLOWED_FILE_EXTENSIONS', ['jpg', 'jpeg', 'png']);
+define('ALLOWED_FILE_EXTENSIONS', ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png']);
 
-// Timezone
+// Fuseau horaire
 date_default_timezone_set('Europe/Paris');
 
-// Error reporting (disable in production)
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
+// Gestion des erreurs
+if (ENV === 'development') {
+    error_reporting(E_ALL);
+    ini_set('display_errors', 1);
+} else {
+    error_reporting(E_ALL);
+    ini_set('display_errors', 0);
+}
 ini_set('log_errors', 1);
 ini_set('error_log', ROOT_PATH . 'logs/error.log');
 
-// Create necessary directories
+// Création des répertoires nécessaires
 $directories = [
-    dirname(DB_NAME),        // Database directory
-    ROOT_PATH . 'public/uploads', // Base uploads directory
-    ROOT_PATH . 'public' . CONTACT_UPLOAD_PATH,
-    ROOT_PATH . 'public' . TEAM_UPLOAD_PATH,
-    ROOT_PATH . 'public' . NEWS_UPLOAD_PATH,
-    VIEWS_PATH              // Views directory
+    dirname(DB_NAME),
+    UPLOAD_PATH,
+    CONTACT_UPLOAD_PATH,
+    TEAM_UPLOAD_PATH,
+    NEWS_UPLOAD_PATH,
+    VIEWS_PATH
 ];
 
 foreach ($directories as $dir) {
     if (!is_dir($dir)) {
-        if (!mkdir($dir, 0755, true)) {
-            error_log("Failed to create directory: $dir");
+        if (!mkdir($dir, 0755, true) && !is_dir($dir)) {
+            error_log("Échec de la création du répertoire : $dir");
         } else {
-            error_log("Created directory: $dir");
+            chmod($dir, 0755); // Assurer les permissions
         }
     }
 }
 
-// Security configuration
+// Configuration de sécurité
 define('SESSION_NAME', 'cabinet_session');
 define('CSRF_TOKEN_NAME', 'csrf_token');
 
-// SMTP configuration (for email notifications, optional)
+// Configuration SMTP (placeholder, nécessite PHPMailer pour production)
 define('SMTP_HOST', 'localhost');
 define('SMTP_PORT', 587);
 define('SMTP_USERNAME', '');
@@ -79,73 +96,60 @@ define('SMTP_SECURE', 'tls');
 define('SMTP_FROM_NAME', SITE_NAME);
 define('SMTP_FROM_EMAIL', ADMIN_EMAIL);
 
-// Generate CSRF token
+// Génération du jeton CSRF
 function generateCSRFToken() {
-    if (session_status() === PHP_SESSION_NONE) {
-        session_start([
-            'name' => SESSION_NAME,
-            'cookie_httponly' => true,
-            'cookie_secure' => strpos(SITE_URL, 'https://') === 0,
-            'cookie_samesite' => 'Strict'
-        ]);
-    }
     if (!isset($_SESSION[CSRF_TOKEN_NAME])) {
         $_SESSION[CSRF_TOKEN_NAME] = bin2hex(random_bytes(32));
     }
     return $_SESSION[CSRF_TOKEN_NAME];
 }
 
-// Verify CSRF token
+// Vérification du jeton CSRF
 function verifyCSRFToken($token) {
-    if (session_status() === PHP_SESSION_NONE) {
-        session_start([
-            'name' => SESSION_NAME,
-            'cookie_httponly' => true,
-            'cookie_secure' => strpos(SITE_URL, 'https://') === 0,
-            'cookie_samesite' => 'Strict'
-        ]);
-    }
-    $valid = isset($_SESSION[CSRF_TOKEN_NAME]) && hash_equals($_SESSION[CSRF_TOKEN_NAME], $token);
-    error_log("CSRF verification: token=$token, session_token=" . ($_SESSION[CSRF_TOKEN_NAME] ?? 'none') . ", valid=" . ($valid ? 'true' : 'false'));
-    return $valid;
+    return isset($_SESSION[CSRF_TOKEN_NAME]) && hash_equals($_SESSION[CSRF_TOKEN_NAME], $token);
 }
 
-// Get base URL
+// Obtenir l'URL de base
 function getBaseUrl() {
-    $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https://' : 'http://';
+    $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443) ? 'https://' : 'http://';
     $host = $_SERVER['HTTP_HOST'];
     $path = dirname($_SERVER['SCRIPT_NAME']);
-    return rtrim($protocol . $host . $path, '/');
+    return rtrim($protocol . $host . $path, '/') . '/';
 }
 
-// Sanitize output
+// Sanitisation de la sortie
 function h($string) {
-    return htmlspecialchars($string, ENT_QUOTES, 'UTF-8');
+    return htmlspecialchars($string, ENT_QUOTES | ENT_SUBSTITUTE | ENT_HTML5, 'UTF-8');
 }
 
-// Destroy session
+// Destruction de la session
 function destroySession() {
     if (session_status() === PHP_SESSION_ACTIVE) {
         session_unset();
         session_destroy();
-        setcookie(SESSION_NAME, '', time() - 3600, '/', '', strpos(SITE_URL, 'https://') === 0, true);
+        $isSecure = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443;
+        setcookie(SESSION_NAME, '', time() - 3600, '/', '', $isSecure, true);
     }
 }
 
-// Check if user is logged in
+// Vérification de la connexion
 function isLoggedIn() {
-    return isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'];
+    return isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'] === true;
 }
 
-// Redirect to URL
+// Redirection
 function redirect($url) {
-    header("Location: $url");
+    header("Location: " . getBaseUrl() . ltrim($url, '/'));
     exit;
 }
 
-// Send email (placeholder, requires SMTP library for production)
+// Envoi d'email (placeholder)
 function sendEmail($to, $subject, $message, $headers = '') {
-    error_log("Email sending attempted to: $to, subject: $subject");
+    $headers = "From: " . SMTP_FROM_NAME . " <" . SMTP_FROM_EMAIL . ">\r\n";
+    $headers .= "Reply-To: " . SMTP_FROM_EMAIL . "\r\n";
+    $headers .= "MIME-Version: 1.0\r\n";
+    $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
+    error_log("Tentative d'envoi d'email à : $to, sujet : $subject");
     return mail($to, $subject, $message, $headers);
 }
 ?>

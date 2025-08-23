@@ -1,31 +1,52 @@
 <?php
-session_start();
-require_once 'includes/config.php';
-require_once 'includes/Database.php';
-require_once 'includes/Router.php';
+// Inclure les fichiers de configuration et dépendances
+require_once __DIR__ . '/includes/config.php';
+require_once INCLUDES_PATH . 'Database.php';
+require_once INCLUDES_PATH . 'Router.php';
 
-// Initialize database
-$database = new Database();
-$db = $database->getConnection();
+// Initialisation implicite de la session via config.php (déjà gérée par session_start())
 
-// Initialize router
-$router = new Router();
+// Récupérer le jeton CSRF généré par config.php
+$csrfToken = generateCSRFToken();
 
-// Define routes
-$router->add('/', 'controllers/HomeController.php', 'index');
-$router->add('/admin', 'controllers/AdminController.php', 'login');
-$router->add('/admin/dashboard', 'controllers/AdminController.php', 'dashboard');
-$router->add('/admin/content', 'controllers/AdminController.php', 'content');
-$router->add('/admin/contacts', 'controllers/AdminController.php', 'contacts');
-$router->add('/admin/message', 'controllers/AdminController.php', 'messageDetail');
-$router->add('/admin/settings', 'controllers/AdminController.php', 'settings');
-$router->add('/admin/logout', 'controllers/AdminController.php', 'logout');
-$router->add('/contact', 'controllers/ContactController.php', 'submit');
+try {
+    // Initialiser la base de données
+    $database = new Database();
+    $db = $database->getConnection();
 
-// Get current URL
-$url = $_SERVER['REQUEST_URI'];
-$url = strtok($url, '?'); // Remove query parameters
+    // Initialiser le routeur
+    $router = new Router();
 
-// Route the request
-$router->route($url);
+    // Définir les routes
+    $router->add('/', 'HomeController', 'index', 'GET');
+    $router->add('/contact', 'ContactController', 'submit', 'POST');
+    $router->add('/api/appointment-slots', 'ContactController', 'getAvailableSlots', 'GET');
+    $router->add('/admin', 'AdminController', 'login', 'GET');
+    $router->add('/admin/login', 'AdminController', 'login', 'POST');
+    $router->add('/admin/dashboard', 'AdminController', 'dashboard', 'GET');
+    $router->add('/admin/content', 'AdminController', 'content', 'GET');
+    $router->add('/admin/contacts', 'AdminController', 'contacts', 'GET');
+    $router->add('/admin/schedule', 'AdminController', 'schedule', 'GET');
+    $router->add('/admin/schedule', 'AdminController', 'schedule', 'POST');
+    $router->add('/admin/settings', 'AdminController', 'settings', 'GET');
+    $router->add('/admin/logout', 'AdminController', 'logout', 'GET');
+    $router->add('/service/{id}', 'ServiceController', 'show', 'GET');
+    $router->add('/admin/message/{id}', 'AdminController', 'messageDetail', 'GET');
+
+    // Récupérer l'URL actuelle et la méthode HTTP
+    $url = $_SERVER['REQUEST_URI'];
+    $url = strtok($url, '?'); // Supprimer les paramètres de requête
+    $httpMethod = $_SERVER['REQUEST_METHOD'];
+    $queryParams = $_GET;
+
+    // Router la requête
+    $router->route($url, $httpMethod, $queryParams);
+
+} catch (Exception $e) {
+    error_log("Erreur d'application : " . $e->getMessage() . " à " . date('Y-m-d H:i:s'));
+    http_response_code(500);
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode(['success' => false, 'message' => 'Erreur serveur interne : ' . h($e->getMessage())], JSON_UNESCAPED_UNICODE);
+    exit;
+}
 ?>

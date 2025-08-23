@@ -9,7 +9,6 @@ class AdminController {
     private $newsUploadDir = NEWS_UPLOAD_PATH;
 
     public function __construct() {
-        // Ensure session is started
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
         }
@@ -23,6 +22,29 @@ class AdminController {
         exit;
     }
 
+    private function getStats() {
+        try {
+            return [
+                'contacts' => $this->db->query("SELECT COUNT(*) FROM contacts")->fetchColumn(),
+                'new_contacts' => $this->db->query("SELECT COUNT(*) FROM contacts WHERE status = 'new'")->fetchColumn(),
+                'services' => $this->db->query("SELECT COUNT(*) FROM services WHERE is_active = 1")->fetchColumn(),
+                'team_members' => $this->db->query("SELECT COUNT(*) FROM team_members WHERE is_active = 1")->fetchColumn(),
+                'news' => $this->db->query("SELECT COUNT(*) FROM news WHERE is_active = 1")->fetchColumn(),
+                'appointments' => $this->db->query("SELECT COUNT(*) FROM appointments WHERE status IN ('pending', 'confirmed')")->fetchColumn()
+            ];
+        } catch (PDOException $e) {
+            error_log("Database error in getStats: " . $e->getMessage());
+            return [
+                'contacts' => 0,
+                'new_contacts' => 0,
+                'services' => 0,
+                'team_members' => 0,
+                'news' => 0,
+                'appointments' => 0
+            ];
+        }
+    }
+
     private function requireAuth() {
         if (!isset($_SESSION['admin_logged_in']) || !$_SESSION['admin_logged_in']) {
             header('Location: /admin');
@@ -34,10 +56,8 @@ class AdminController {
         $upload_dir = $upload_dir ?: $this->teamUploadDir;
         $absolute_dir = $_SERVER['DOCUMENT_ROOT'] . $upload_dir;
 
-        // Log the upload attempt
         error_log("Image upload attempt: dir=$absolute_dir, existing_id=$existing_id, file=" . json_encode($file));
 
-        // Handle no file uploaded case
         if ($file['error'] === UPLOAD_ERR_NO_FILE) {
             error_log("No file uploaded for existing_id=$existing_id");
             if ($existing_id) {
@@ -51,9 +71,8 @@ class AdminController {
         }
 
         $allowed_types = ALLOWED_FILE_TYPES;
-        $max_size = 5 * 1024 * 1024; // 5MB
+        $max_size = 5 * 1024 * 1024;
 
-        // Create directory if it doesn't exist
         if (!is_dir($absolute_dir)) {
             if (!mkdir($absolute_dir, 0755, true)) {
                 error_log("Failed to create upload directory: $absolute_dir");
@@ -61,27 +80,22 @@ class AdminController {
             }
         }
 
-        // Verify file type
         if (!in_array($file['type'], $allowed_types)) {
             error_log("Invalid file type: " . $file['type']);
             return 'Erreur : Type de fichier non autorisé. Seuls JPG et PNG sont acceptés.';
         }
 
-        // Verify file size
         if ($file['size'] > $max_size) {
             error_log("File size too large: " . $file['size']);
             return 'Erreur : Le fichier est trop volumineux. Taille maximale : 5MB.';
         }
 
-        // Generate unique filename
         $extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
         $filename = uniqid(($upload_dir === $this->teamUploadDir ? 'team_' : 'news_')) . '.' . $extension;
         $destination = $absolute_dir . $filename;
         $relative_path = $upload_dir . $filename;
 
-        // Move uploaded file
         if (move_uploaded_file($file['tmp_name'], $destination)) {
-            // Delete old image if updating
             if ($existing_id) {
                 $table = ($upload_dir === $this->teamUploadDir) ? 'team_members' : 'news';
                 $stmt = $this->db->prepare("SELECT image_path FROM $table WHERE id = ?");
@@ -101,13 +115,11 @@ class AdminController {
     }
 
     public function login() {
-        // Ensure session is started
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
         }
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            // Verify CSRF token
             if (!verifyCSRFToken($_POST['csrf_token'] ?? '')) {
                 error_log("CSRF token validation failed in login");
                 $error = 'Erreur de validation CSRF. Veuillez réessayer.';
@@ -133,7 +145,6 @@ class AdminController {
                 if ($user && $user['is_active'] && password_verify($password, $user['password'])) {
                     $_SESSION['admin_logged_in'] = true;
                     $_SESSION['admin_id'] = $user['id'];
-                    // Regenerate session ID to prevent session fixation
                     session_regenerate_id(true);
                     $updateStmt = $this->db->prepare("UPDATE admin_users SET last_login = datetime('now'), updated_at = datetime('now') WHERE id = ?");
                     $updateStmt->execute([$user['id']]);
@@ -150,7 +161,6 @@ class AdminController {
             }
         }
 
-        // Redirect if already logged in
         if (isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in']) {
             header('Location: /admin/dashboard');
             exit;
@@ -164,17 +174,24 @@ class AdminController {
         header('Cache-Control: no-cache, must-revalidate');
 
         try {
-            $stats = [
-                'contacts' => $this->db->query("SELECT COUNT(*) FROM contacts")->fetchColumn(),
-                'new_contacts' => $this->db->query("SELECT COUNT(*) FROM contacts WHERE status = 'new'")->fetchColumn(),
-                'services' => $this->db->query("SELECT COUNT(*) FROM services WHERE is_active = 1")->fetchColumn(),
-                'team_members' => $this->db->query("SELECT COUNT(*) FROM team_members WHERE is_active = 1")->fetchColumn(),
-                'news' => $this->db->query("SELECT COUNT(*) FROM news WHERE is_active = 1")->fetchColumn()
-            ];
+            $stats = $this->getStats();
 
             $recent_contacts = $this->db->query("
-                SELECT * FROM contacts 
-                ORDER BY created_at DESC 
+                SELECT c.*, a.status as appointment_status, s.start_time as appointment_time 
+                FROM contacts c 
+                LEFT JOIN appointments a ON c.appointment_id = a.id 
+                LEFT JOIN appointment_slots s ON a.slot_id = s.id 
+                ORDER BY c.created_at DESC 
+                LIMIT 5
+            ")->fetchAll(PDO::FETCH_ASSOC);
+
+            $upcoming_appointments = $this->db->query("
+                SELECT c.name, c.email, a.status as appointment_status, s.start_time as appointment_time 
+                FROM appointments a 
+                JOIN contacts c ON a.contact_id = c.id 
+                JOIN appointment_slots s ON a.slot_id = s.id 
+                WHERE a.status IN ('pending', 'confirmed') AND s.start_time >= datetime('now')
+                ORDER BY s.start_time ASC
                 LIMIT 5
             ")->fetchAll(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
@@ -573,7 +590,6 @@ class AdminController {
                     }
                     $this->redirectWithMessage(true, 'Message marqué comme nouveau', '/admin/contacts');
                 } elseif ($action === 'delete' && $id) {
-                    // Verify contact exists
                     $stmt = $this->db->prepare("SELECT id FROM contacts WHERE id = ?");
                     $stmt->execute([$id]);
                     if (!$stmt->fetch()) {
@@ -581,7 +597,6 @@ class AdminController {
                         $this->redirectWithMessage(false, 'Erreur : Contact introuvable.', '/admin/contacts');
                     }
 
-                    // Delete associated files
                     $stmt = $this->db->prepare("SELECT file_path FROM contact_files WHERE contact_id = ?");
                     if (!$stmt->execute([$id])) {
                         error_log("Failed to select contact files for contact_id=$id");
@@ -610,6 +625,37 @@ class AdminController {
                     }
                     error_log("Contact deleted successfully: ID=$id");
                     $this->redirectWithMessage(true, 'Message supprimé', '/admin/contacts');
+                } elseif ($action === 'confirm_appointment' && $id) {
+                    $stmt = $this->db->prepare("
+                        UPDATE appointments 
+                        SET status = 'confirmed', updated_at = datetime('now') 
+                        WHERE id = ? AND EXISTS (SELECT 1 FROM contacts WHERE appointment_id = ?)
+                    ");
+                    if (!$stmt->execute([$id, $id])) {
+                        error_log("Failed to confirm appointment: id=$id");
+                        $this->redirectWithMessage(false, 'Erreur : Échec de la confirmation du rendez-vous.', '/admin/contacts');
+                    }
+                    $this->redirectWithMessage(true, 'Rendez-vous confirmé', '/admin/contacts');
+                } elseif ($action === 'cancel_appointment' && $id) {
+                    $stmt = $this->db->prepare("SELECT slot_id FROM appointments WHERE id = ?");
+                    $stmt->execute([$id]);
+                    $slot_id = $stmt->fetchColumn();
+                    
+                    $stmt = $this->db->prepare("
+                        UPDATE appointments 
+                        SET status = 'cancelled', updated_at = datetime('now') 
+                        WHERE id = ? AND EXISTS (SELECT 1 FROM contacts WHERE appointment_id = ?)
+                    ");
+                    if (!$stmt->execute([$id, $id])) {
+                        error_log("Failed to cancel appointment: id=$id");
+                        $this->redirectWithMessage(false, 'Erreur : Échec de l\'annulation du rendez-vous.', '/admin/contacts');
+                    }
+                    
+                    if ($slot_id) {
+                        $stmt = $this->db->prepare("UPDATE appointment_slots SET is_available = 1, updated_at = datetime('now') WHERE id = ?");
+                        $stmt->execute([$slot_id]);
+                    }
+                    $this->redirectWithMessage(true, 'Rendez-vous annulé', '/admin/contacts');
                 } else {
                     error_log("Unknown or invalid contacts action: action=$action, id=$id");
                     $this->redirectWithMessage(false, 'Action non reconnue ou ID manquant.', '/admin/contacts');
@@ -621,9 +667,13 @@ class AdminController {
         }
 
         try {
+            $stats = $this->getStats();
             $contacts = $this->db->query("
-                SELECT * FROM contacts 
-                ORDER BY created_at DESC
+                SELECT c.*, a.status as appointment_status, s.start_time as appointment_time 
+                FROM contacts c 
+                LEFT JOIN appointments a ON c.appointment_id = a.id 
+                LEFT JOIN appointment_slots s ON a.slot_id = s.id 
+                ORDER BY c.created_at DESC
             ")->fetchAll(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
             error_log("Database error in contacts: " . $e->getMessage());
@@ -650,7 +700,13 @@ class AdminController {
         }
 
         try {
-            $stmt = $this->db->prepare("SELECT * FROM contacts WHERE id = ?");
+            $stmt = $this->db->prepare("
+                SELECT c.*, a.status as appointment_status, s.start_time as appointment_start, s.end_time as appointment_end 
+                FROM contacts c 
+                LEFT JOIN appointments a ON c.appointment_id = a.id 
+                LEFT JOIN appointment_slots s ON a.slot_id = s.id 
+                WHERE c.id = ?
+            ");
             $stmt->execute([$messageId]);
             $contact = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -678,6 +734,92 @@ class AdminController {
         include 'views/admin/message-detail.php';
     }
 
+    public function schedule() {
+        $this->requireAuth();
+        header('Cache-Control: no-cache, must-revalidate');
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            if (!verifyCSRFToken($_POST['csrf_token'] ?? '')) {
+                error_log("CSRF token validation failed in schedule");
+                $this->redirectWithMessage(false, 'Erreur de validation CSRF', '/admin/schedule');
+            }
+
+            $action = trim($_POST['action'] ?? '');
+
+            try {
+                if ($action === 'add_slot') {
+                    $start_time = trim($_POST['start_time'] ?? '');
+                    $end_time = trim($_POST['end_time'] ?? '');
+
+                    if ($start_time && $end_time) {
+                        $start_datetime = DateTime::createFromFormat('Y-m-d\TH:i', $start_time);
+                        $end_datetime = DateTime::createFromFormat('Y-m-d\TH:i', $end_time);
+
+                        if (!$start_datetime || !$end_datetime || $start_datetime >= $end_datetime || $start_datetime < new DateTime()) {
+                            $this->redirectWithMessage(false, 'Erreur : Dates/heures invalides ou dans le passé.', '/admin/schedule');
+                        }
+
+                        $stmt = $this->db->prepare("
+                            INSERT INTO appointment_slots (start_time, end_time, is_available, created_at, updated_at)
+                            VALUES (?, ?, 1, datetime('now'), datetime('now'))
+                        ");
+                        if (!$stmt->execute([$start_datetime->format('Y-m-d H:i:s'), $end_datetime->format('Y-m-d H:i:s')])) {
+                            error_log("Failed to add appointment slot: start_time=$start_time");
+                            $this->redirectWithMessage(false, 'Erreur : Échec de l\'ajout du créneau.', '/admin/schedule');
+                        }
+                        $this->redirectWithMessage(true, 'Créneau ajouté avec succès!', '/admin/schedule');
+                    } else {
+                        $this->redirectWithMessage(false, 'Erreur : Date de début et de fin requises.', '/admin/schedule');
+                    }
+                } elseif ($action === 'delete_slot') {
+                    $id = trim($_POST['slot_id'] ?? '');
+                    if ($id) {
+                        $stmt = $this->db->prepare("SELECT id FROM appointments WHERE slot_id = ? AND status IN ('pending', 'confirmed')");
+                        $stmt->execute([$id]);
+                        if ($stmt->fetch()) {
+                            error_log("Cannot delete slot $id: active appointments exist");
+                            $this->redirectWithMessage(false, 'Erreur : Impossible de supprimer un créneau avec des rendez-vous actifs.', '/admin/schedule');
+                        }
+
+                        $stmt = $this->db->prepare("DELETE FROM appointment_slots WHERE id = ?");
+                        if (!$stmt->execute([$id])) {
+                            error_log("Failed to delete appointment slot: id=$id");
+                            $this->redirectWithMessage(false, 'Erreur : Échec de la suppression du créneau.', '/admin/schedule');
+                        }
+                        $this->redirectWithMessage(true, 'Créneau supprimé avec succès!', '/admin/schedule');
+                    } else {
+                        $this->redirectWithMessage(false, 'Erreur : ID du créneau manquant.', '/admin/schedule');
+                    }
+                } else {
+                    error_log("Unknown schedule action: $action");
+                    $this->redirectWithMessage(false, 'Action non reconnue.', '/admin/schedule');
+                }
+            } catch (Exception $e) {
+                error_log("Server error in schedule action $action: " . $e->getMessage());
+                $this->redirectWithMessage(false, 'Erreur serveur : ' . $e->getMessage(), '/admin/schedule');
+            }
+        }
+
+        try {
+            $stats = $this->getStats();
+            $slots = $this->db->query("
+                SELECT s.*, COUNT(a.id) as appointment_count 
+                FROM appointment_slots s 
+                LEFT JOIN appointments a ON s.id = a.slot_id AND a.status IN ('pending', 'confirmed')
+                WHERE s.start_time >= datetime('now')
+                GROUP BY s.id
+                ORDER BY s.start_time
+            ")->fetchAll(PDO::FETCH_ASSOC);
+        } catch (PDOException $e) {
+            error_log("Database error in schedule: " . $e->getMessage());
+            $error = 'Erreur serveur lors du chargement des créneaux.';
+            include 'views/admin/error.php';
+            return;
+        }
+
+        include 'views/admin/schedule.php';
+    }
+
     public function settings() {
         $this->requireAuth();
         header('Cache-Control: no-cache, must-revalidate');
@@ -689,7 +831,6 @@ class AdminController {
             }
 
             try {
-                // Add settings update logic here if needed
                 $this->redirectWithMessage(true, 'Paramètres mis à jour avec succès!', '/admin/settings');
             } catch (Exception $e) {
                 error_log("Server error in settings: " . $e->getMessage());

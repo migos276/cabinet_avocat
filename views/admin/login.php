@@ -156,7 +156,7 @@
             </div>
         <?php endif; ?>
 
-        <form method="POST">
+        <form method="POST" action="/admin/login">
             <input type="hidden" name="csrf_token" value="<?php echo generateCSRFToken(); ?>">
             
             <div class="form-group">

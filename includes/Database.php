@@ -4,16 +4,21 @@ require_once __DIR__ . '/config.php';
 class Database {
     private $connection = null;
 
+    public function __construct() {
+        // Check database file accessibility
+        if (!file_exists(dirname(DB_NAME)) && !mkdir(dirname(DB_NAME), 0755, true)) {
+            throw new Exception('Cannot create database directory: ' . dirname(DB_NAME));
+        }
+        if (file_exists(DB_NAME) && !is_writable(DB_NAME)) {
+            throw new Exception('Database file is not writable: ' . DB_NAME);
+        }
+    }
+
     public function getConnection() {
         if ($this->connection === null) {
             try {
                 if (!defined('DB_NAME')) {
                     throw new Exception('DB_NAME constant is not defined. Please check your config.php file.');
-                }
-
-                $dbDir = dirname(DB_NAME);
-                if (!is_dir($dbDir) && !mkdir($dbDir, 0755, true) && !is_dir($dbDir)) {
-                    throw new Exception('Cannot create database directory: ' . $dbDir);
                 }
 
                 $this->connection = new PDO('sqlite:' . DB_NAME);
@@ -58,8 +63,11 @@ class Database {
                     subject VARCHAR(255),
                     message TEXT NOT NULL,
                     status VARCHAR(20) DEFAULT 'new',
+                    appointment_id INTEGER,
+                    payment_method VARCHAR(20),
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (appointment_id) REFERENCES appointments(id) ON DELETE SET NULL
                 )",
                 "CREATE TABLE IF NOT EXISTS services (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -78,7 +86,7 @@ class Database {
                     name TEXT NOT NULL,
                     position TEXT NOT NULL,
                     description TEXT NOT NULL,
-                    image_path TEXT, -- Changed to allow NULL for cases where no image is uploaded
+                    image_path TEXT DEFAULT '/public/uploads/team/default_team_member.jpeg',
                     is_active INTEGER DEFAULT 1,
                     order_position INTEGER DEFAULT 0,
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -88,7 +96,7 @@ class Database {
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     title TEXT NOT NULL,
                     content TEXT NOT NULL,
-                    image_path TEXT, -- Changed to allow NULL for cases where no image is uploaded
+                    image_path TEXT DEFAULT '/public/uploads/news/default_news.jpg',
                     publish_date DATETIME NOT NULL,
                     is_active INTEGER DEFAULT 1,
                     order_position INTEGER DEFAULT 0,
@@ -115,6 +123,24 @@ class Database {
                     last_login DATETIME,
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )",
+                "CREATE TABLE IF NOT EXISTS appointment_slots (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    start_time DATETIME NOT NULL,
+                    end_time DATETIME NOT NULL,
+                    is_booked INTEGER DEFAULT 0,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )",
+                "CREATE TABLE IF NOT EXISTS appointments (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    slot_id INTEGER NOT NULL,
+                    contact_id INTEGER NOT NULL,
+                    status VARCHAR(20) DEFAULT 'pending',
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (slot_id) REFERENCES appointment_slots(id) ON DELETE CASCADE,
+                    FOREIGN KEY (contact_id) REFERENCES contacts(id) ON DELETE CASCADE
                 )"
             ];
 
@@ -122,31 +148,8 @@ class Database {
                 $this->connection->exec($sql);
             }
 
-            // Ensure order_position column exists in news table
-            $columns = $this->connection->query("PRAGMA table_info(news)")->fetchAll(PDO::FETCH_ASSOC);
-            $has_order_position = false;
-            foreach ($columns as $column) {
-                if ($column['name'] === 'order_position') {
-                    $has_order_position = true;
-                    break;
-                }
-            }
-            if (!$has_order_position) {
-                $this->connection->exec("ALTER TABLE news ADD COLUMN order_position INTEGER DEFAULT 0");
-                $this->connection->exec("UPDATE news SET order_position = id WHERE order_position IS NULL");
-            }
-
-            // Fix color column length if needed
-            $service_columns = $this->connection->query("PRAGMA table_info(services)")->fetchAll(PDO::FETCH_ASSOC);
-            foreach ($service_columns as $col) {
-                if ($col['name'] === 'color' && $col['type'] === 'VARCHAR(7)') {
-                    $this->connection->exec("ALTER TABLE services RENAME COLUMN color TO old_color");
-                    $this->connection->exec("ALTER TABLE services ADD COLUMN color VARCHAR(255) DEFAULT '#3b82f6'");
-                    $this->connection->exec("UPDATE services SET color = old_color");
-                    $this->connection->exec("ALTER TABLE services DROP COLUMN old_color");
-                }
-            }
-
+            // Check and update schema only if necessary
+            $this->upgradeSchema();
             $this->createIndexes();
             $this->insertDefaultData();
             $this->connection->commit();
@@ -158,16 +161,62 @@ class Database {
         }
     }
 
+    private function upgradeSchema() {
+        // Ensure order_position column in news
+        $columns = $this->connection->query("PRAGMA table_info(news)")->fetchAll(PDO::FETCH_ASSOC);
+        $has_order_position = false;
+        foreach ($columns as $column) {
+            if ($column['name'] === 'order_position') {
+                $has_order_position = true;
+                break;
+            }
+        }
+        if (!$has_order_position) {
+            $this->connection->exec("ALTER TABLE news ADD COLUMN order_position INTEGER DEFAULT 0");
+            $this->connection->exec("UPDATE news SET order_position = id WHERE order_position IS NULL");
+        }
+
+        // Fix color column length in services
+        $service_columns = $this->connection->query("PRAGMA table_info(services)")->fetchAll(PDO::FETCH_ASSOC);
+        foreach ($service_columns as $col) {
+            if ($col['name'] === 'color' && $col['type'] === 'VARCHAR(7)') {
+                $this->connection->exec("ALTER TABLE services RENAME COLUMN color TO old_color");
+                $this->connection->exec("ALTER TABLE services ADD COLUMN color VARCHAR(255) DEFAULT '#3b82f6'");
+                $this->connection->exec("UPDATE services SET color = old_color");
+                $this->connection->exec("ALTER TABLE services DROP COLUMN old_color");
+            }
+        }
+
+        // Ensure appointment_id and payment_method columns in contacts
+        $contact_columns = $this->connection->query("PRAGMA table_info(contacts)")->fetchAll(PDO::FETCH_ASSOC);
+        $has_appointment_id = false;
+        $has_payment_method = false;
+        foreach ($contact_columns as $column) {
+            if ($column['name'] === 'appointment_id') $has_appointment_id = true;
+            if ($column['name'] === 'payment_method') $has_payment_method = true;
+        }
+        if (!$has_appointment_id) {
+            $this->connection->exec("ALTER TABLE contacts ADD COLUMN appointment_id INTEGER");
+            $this->connection->exec("UPDATE contacts SET appointment_id = NULL");
+        }
+        if (!$has_payment_method) {
+            $this->connection->exec("ALTER TABLE contacts ADD COLUMN payment_method VARCHAR(20)");
+        }
+    }
+
     private function createIndexes() {
         $indexes = [
             "CREATE INDEX IF NOT EXISTS idx_contact_files_contact_id ON contact_files(contact_id)",
             "CREATE INDEX IF NOT EXISTS idx_contacts_status ON contacts(status)",
             "CREATE INDEX IF NOT EXISTS idx_contacts_created_at ON contacts(created_at)",
             "CREATE INDEX IF NOT EXISTS idx_contacts_email ON contacts(email)",
+            "CREATE INDEX IF NOT EXISTS idx_contacts_appointment_id ON contacts(appointment_id)",
             "CREATE INDEX IF NOT EXISTS idx_site_content_section ON site_content(section)",
             "CREATE INDEX IF NOT EXISTS idx_services_active ON services(is_active, order_position)",
             "CREATE INDEX IF NOT EXISTS idx_team_members_active ON team_members(is_active, order_position)",
-            "CREATE INDEX IF NOT EXISTS idx_news_active ON news(is_active, order_position)"
+            "CREATE INDEX IF NOT EXISTS idx_news_active ON news(is_active, order_position)",
+            "CREATE INDEX IF NOT EXISTS idx_appointment_slots_time ON appointment_slots(start_time, end_time)",
+            "CREATE INDEX IF NOT EXISTS idx_appointments_slot_id ON appointments(slot_id)"
         ];
 
         foreach ($indexes as $index) {
@@ -181,28 +230,40 @@ class Database {
     }
 
     private function insertDefaultData() {
-        $check = $this->connection->query("SELECT COUNT(*) FROM site_content")->fetchColumn();
-        if ($check > 0) return;
+        // Check if any table is populated to avoid redundant insertions
+        $tables = ['site_content', 'services', 'team_members', 'news', 'admin_users', 'appointment_slots'];
+        $isPopulated = false;
+        foreach ($tables as $table) {
+            $count = $this->connection->query("SELECT COUNT(*) FROM $table")->fetchColumn();
+            if ($count > 0) {
+                $isPopulated = true;
+                break;
+            }
+        }
+        if ($isPopulated) return;
 
         $this->insertDefaultSiteContent();
         $this->insertDefaultServices();
         $this->insertDefaultTeam();
         $this->insertDefaultNews();
         $this->insertDefaultAdmin();
+        $this->insertDefaultAppointmentSlots();
     }
 
     private function insertDefaultSiteContent() {
+        $sql = "SELECT 1 FROM site_content WHERE section = ? AND key_name = ? LIMIT 1";
+        $stmt = $this->connection->prepare($sql);
         $defaultContent = [
             ['hero', 'title', defined('SITE_NAME') ? SITE_NAME : 'Cabinet Excellence'],
             ['hero', 'subtitle', 'Votre partenaire de confiance pour tous vos besoins juridiques'],
             ['about', 'title', 'À propos de nous'],
-            ['about', 'subtitle', 'Fort de plus de 20 ans d\'expérience, notre cabinet vous accompagne dans tous vos besoins juridiques avec professionnalisme et rigueur.'],
+            ['about', 'subtitle', 'Fort de plus de 20 ans d\'expérience, notre cabinet vous accompagne avec professionnalisme.'],
             ['services', 'title', 'Nos services'],
             ['services', 'subtitle', 'Des domaines d\'expertise variés pour répondre à tous vos besoins'],
             ['team', 'title', 'Notre équipe'],
             ['team', 'subtitle', 'Des experts à votre service'],
             ['news', 'title', 'Nos Dernières Actualités'],
-            ['news', 'subtitle', 'Restez informé des dernières nouvelles et mises à jour juridiques de notre cabinet.'],
+            ['news', 'subtitle', 'Restez informé des dernières nouvelles juridiques.'],
             ['contact', 'title', 'Contactez-nous'],
             ['contact', 'address', '123 Avenue de la Justice, 75001 Paris'],
             ['contact', 'phone', '+33 1 23 45 67 89'],
@@ -210,11 +271,13 @@ class Database {
             ['footer', 'copyright', '© ' . date('Y') . ' ' . (defined('SITE_NAME') ? SITE_NAME : 'Cabinet Excellence') . '. Tous droits réservés.']
         ];
 
-        $sql = "INSERT INTO site_content (section, key_name, value) VALUES (?, ?, ?)";
-        $stmt = $this->connection->prepare($sql);
+        $insertSql = "INSERT INTO site_content (section, key_name, value) VALUES (?, ?, ?)";
+        $insertStmt = $this->connection->prepare($insertSql);
         foreach ($defaultContent as $content) {
+            $stmt->execute([$content[0], $content[1]]);
+            if ($stmt->fetch()) continue; // Skip if record exists
             try {
-                $stmt->execute($content);
+                $insertStmt->execute($content);
             } catch (PDOException $e) {
                 error_log('Error inserting default site content: ' . $e->getMessage());
             }
@@ -222,13 +285,12 @@ class Database {
     }
 
     private function insertDefaultServices() {
-        $check = $this->connection->query("SELECT COUNT(*) FROM services")->fetchColumn();
-        if ($check > 0) return;
-
+        $sql = "SELECT 1 FROM services WHERE title = ? LIMIT 1";
+        $stmt = $this->connection->prepare($sql);
         $defaultServices = [
             [
                 'title' => 'Droit des Affaires',
-                'description' => 'Accompagnement juridique complet pour les entreprises, de la création aux opérations complexes.',
+                'description' => 'Accompagnement juridique complet pour les entreprises.',
                 'icon' => 'fas fa-briefcase',
                 'color' => '#3b82f6',
                 'order_position' => 1,
@@ -236,7 +298,7 @@ class Database {
             ],
             [
                 'title' => 'Droit de la Famille',
-                'description' => 'Conseil et représentation dans tous les aspects du droit familial et matrimonial.',
+                'description' => 'Conseil et représentation dans tous les aspects du droit familial.',
                 'icon' => 'fas fa-heart',
                 'color' => '#ef4444',
                 'order_position' => 2,
@@ -244,7 +306,7 @@ class Database {
             ],
             [
                 'title' => 'Droit Immobilier',
-                'description' => 'Expertise en transactions immobilières, copropriété et contentieux immobiliers.',
+                'description' => 'Expertise en transactions immobilières et contentieux.',
                 'icon' => 'fas fa-home',
                 'color' => '#10b981',
                 'order_position' => 3,
@@ -252,7 +314,7 @@ class Database {
             ],
             [
                 'title' => 'Droit du Travail',
-                'description' => 'Protection des droits des salariés et conseil aux employeurs en droit social.',
+                'description' => 'Protection des droits des salariés et conseil aux employeurs.',
                 'icon' => 'fas fa-users',
                 'color' => '#f59e0b',
                 'order_position' => 4,
@@ -260,12 +322,14 @@ class Database {
             ]
         ];
 
-        $sql = "INSERT INTO services (title, description, icon, color, order_position, detailed_content, is_active) 
-                VALUES (?, ?, ?, ?, ?, ?, 1)";
-        $stmt = $this->connection->prepare($sql);
+        $insertSql = "INSERT INTO services (title, description, icon, color, order_position, detailed_content, is_active) 
+                      VALUES (?, ?, ?, ?, ?, ?, 1)";
+        $insertStmt = $this->connection->prepare($insertSql);
         foreach ($defaultServices as $service) {
+            $stmt->execute([$service['title']]);
+            if ($stmt->fetch()) continue; // Skip if record exists
             try {
-                $stmt->execute([
+                $insertStmt->execute([
                     $service['title'],
                     $service['description'],
                     $service['icon'],
@@ -280,32 +344,33 @@ class Database {
     }
 
     private function insertDefaultTeam() {
-        $check = $this->connection->query("SELECT COUNT(*) FROM team_members")->fetchColumn();
-        if ($check > 0) return;
-
+        $sql = "SELECT 1 FROM team_members WHERE name = ? LIMIT 1";
+        $stmt = $this->connection->prepare($sql);
         $defaultTeam = [
             [
                 'name' => 'Maître Jean Dupont',
                 'position' => 'Avocat Associé - Droit des Affaires',
-                'description' => 'Spécialisé en droit des sociétés et fusions-acquisitions, Maître Dupont accompagne les entreprises depuis plus de 15 ans.',
-                'image_path' => null, // Allow NULL for optional image
+                'description' => 'Spécialisé en droit des sociétés depuis plus de 15 ans.',
+                'image_path' => '/public/uploads/team/default_team_member.jpeg',
                 'order_position' => 1
             ],
             [
                 'name' => 'Maître Marie Martin',
                 'position' => 'Avocate Spécialisée - Droit de la Famille',
-                'description' => 'Experte en droit matrimonial et protection de l\'enfance, Maître Martin défend les intérêts familiaux avec passion.',
-                'image_path' => null,
+                'description' => 'Experte en droit matrimonial et protection de l\'enfance.',
+                'image_path' => '/public/uploads/team/default_team_member.jpeg',
                 'order_position' => 2
             ]
         ];
 
-        $sql = "INSERT INTO team_members (name, position, description, image_path, order_position, is_active) 
-                VALUES (?, ?, ?, ?, ?, 1)";
-        $stmt = $this->connection->prepare($sql);
+        $insertSql = "INSERT INTO team_members (name, position, description, image_path, order_position, is_active) 
+                      VALUES (?, ?, ?, ?, ?, 1)";
+        $insertStmt = $this->connection->prepare($insertSql);
         foreach ($defaultTeam as $member) {
+            $stmt->execute([$member['name']]);
+            if ($stmt->fetch()) continue; // Skip if record exists
             try {
-                $stmt->execute([
+                $insertStmt->execute([
                     $member['name'],
                     $member['position'],
                     $member['description'],
@@ -319,14 +384,13 @@ class Database {
     }
 
     private function insertDefaultNews() {
-        $check = $this->connection->query("SELECT COUNT(*) FROM news")->fetchColumn();
-        if ($check > 0) return;
-
+        $sql = "SELECT 1 FROM news WHERE title = ? LIMIT 1";
+        $stmt = $this->connection->prepare($sql);
         $defaultNews = [
             [
                 'title' => 'Nouvelles Réglementations en Droit des Affaires',
                 'content' => 'Découvrez les dernières évolutions législatives affectant les entreprises en 2025.',
-                'image_path' => null, // Allow NULL for optional image
+                'image_path' => '/public/uploads/news/default_news.jpg',
                 'publish_date' => date('Y-m-d H:i:s'),
                 'order_position' => 1,
                 'is_active' => 1
@@ -334,19 +398,21 @@ class Database {
             [
                 'title' => 'Réforme du Droit de la Famille',
                 'content' => 'Une analyse approfondie des récentes modifications du droit matrimonial.',
-                'image_path' => null,
+                'image_path' => '/public/uploads/news/default_news.jpg',
                 'publish_date' => date('Y-m-d H:i:s', strtotime('-1 week')),
                 'order_position' => 2,
                 'is_active' => 1
             ]
         ];
 
-        $sql = "INSERT INTO news (title, content, image_path, publish_date, order_position, is_active) 
-                VALUES (?, ?, ?, ?, ?, ?)";
-        $stmt = $this->connection->prepare($sql);
+        $insertSql = "INSERT INTO news (title, content, image_path, publish_date, order_position, is_active) 
+                      VALUES (?, ?, ?, ?, ?, ?)";
+        $insertStmt = $this->connection->prepare($insertSql);
         foreach ($defaultNews as $news) {
+            $stmt->execute([$news['title']]);
+            if ($stmt->fetch()) continue; // Skip if record exists
             try {
-                $stmt->execute([
+                $insertStmt->execute([
                     $news['title'],
                     $news['content'],
                     $news['image_path'],
@@ -361,25 +427,65 @@ class Database {
     }
 
     private function insertDefaultAdmin() {
-        $check = $this->connection->query("SELECT COUNT(*) FROM admin_users")->fetchColumn();
-        if ($check > 0) return;
-
-        $sql = "INSERT INTO admin_users (username, password, email, is_active) VALUES (?, ?, ?, 1)";
+        $sql = "SELECT 1 FROM admin_users WHERE username = ? LIMIT 1";
         $stmt = $this->connection->prepare($sql);
+        $stmt->execute([defined('ADMIN_USERNAME') ? ADMIN_USERNAME : 'admin']);
+        if ($stmt->fetch()) return;
+
+        $insertSql = "INSERT INTO admin_users (username, password, email, is_active) VALUES (?, ?, ?, 1)";
+        $insertStmt = $this->connection->prepare($insertSql);
         try {
             $defaultPassword = defined('ADMIN_PASSWORD') ? ADMIN_PASSWORD : 'admin123';
-            $stmt->execute([
+            $insertStmt->execute([
                 defined('ADMIN_USERNAME') ? ADMIN_USERNAME : 'admin',
                 password_hash($defaultPassword, PASSWORD_DEFAULT),
                 defined('ADMIN_EMAIL') ? ADMIN_EMAIL : 'admin@cabinet-excellence.fr'
             ]);
-            error_log("Default admin user created with username: admin, password: $defaultPassword");
+            error_log("Default admin user created with username: admin");
         } catch (PDOException $e) {
             error_log('Error inserting default admin: ' . $e->getMessage());
         }
     }
 
-    private function getDefaultDetailedContent() {
+    private function insertDefaultAppointmentSlots() {
+        $sql = "SELECT 1 FROM appointment_slots WHERE start_time = ? LIMIT 1";
+        $stmt = $this->connection->prepare($sql);
+        $defaultSlots = [
+            [
+                'start_time' => date('Y-m-d 09:00:00', strtotime('next Monday')),
+                'end_time' => date('Y-m-d 10:00:00', strtotime('next Monday')),
+                'is_booked' => 0
+            ],
+            [
+                'start_time' => date('Y-m-d 10:00:00', strtotime('next Monday')),
+                'end_time' => date('Y-m-d 11:00:00', strtotime('next Monday')),
+                'is_booked' => 0
+            ],
+            [
+                'start_time' => date('Y-m-d 14:00:00', strtotime('next Monday')),
+                'end_time' => date('Y-m-d 15:00:00', strtotime('next Monday')),
+                'is_booked' => 0
+            ]
+        ];
+
+        $insertSql = "INSERT INTO appointment_slots (start_time, end_time, is_booked) VALUES (?, ?, ?)";
+        $insertStmt = $this->connection->prepare($insertSql);
+        foreach ($defaultSlots as $slot) {
+            $stmt->execute([$slot['start_time']]);
+            if ($stmt->fetch()) continue; // Skip if record exists
+            try {
+                $insertStmt->execute([
+                    $slot['start_time'],
+                    $slot['end_time'],
+                    $slot['is_booked']
+                ]);
+            } catch (PDOException $e) {
+                error_log('Error inserting default appointment slot: ' . $e->getMessage());
+            }
+        }
+    }
+
+    public function getDefaultDetailedContent() {
         return '
             <h3>Notre approche</h3>
             <p>Nous offrons une expertise sur-mesure adaptée à vos besoins spécifiques, avec un suivi personnalisé.</p>

@@ -145,6 +145,10 @@
             background: linear-gradient(135deg, #8b5cf6, #7c3aed);
         }
 
+        .stat-card-icon.red {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+        }
+
         .stat-value {
             font-size: 2.5rem;
             font-weight: 700;
@@ -156,7 +160,7 @@
             font-size: 0.9rem;
         }
 
-        /* Recent Contacts */
+        /* Sections */
         .section-card {
             background: white;
             border-radius: 15px;
@@ -171,11 +175,11 @@
             color: #1f2937;
         }
 
-        .contacts-list {
+        .contacts-list, .appointments-list {
             list-style: none;
         }
 
-        .contact-item {
+        .contact-item, .appointment-item {
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -183,22 +187,26 @@
             border-bottom: 1px solid #f3f4f6;
         }
 
-        .contact-item:last-child {
+        .contact-item:last-child, .appointment-item:last-child {
             border-bottom: none;
         }
 
-        .contact-info h4 {
+        .contact-info, .appointment-info {
+            flex: 1;
+        }
+
+        .contact-info h4, .appointment-info h4 {
             font-size: 1rem;
             color: #1f2937;
             margin-bottom: 0.25rem;
         }
 
-        .contact-info p {
+        .contact-info p, .appointment-info p {
             font-size: 0.85rem;
             color: #6b7280;
         }
 
-        .contact-meta {
+        .contact-meta, .appointment-meta {
             text-align: right;
             font-size: 0.8rem;
             color: #9ca3af;
@@ -220,6 +228,21 @@
         .status-read {
             background: #d1fae5;
             color: #065f46;
+        }
+
+        .status-pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .status-confirmed {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .status-cancelled {
+            background: #fee2e2;
+            color: #991b1b;
         }
 
         .btn {
@@ -297,7 +320,7 @@
         <!-- Sidebar -->
         <aside class="sidebar">
             <div class="sidebar-header">
-                <h2><?php echo SITE_NAME; ?></h2>
+                <h2><?php echo defined('SITE_NAME') ? SITE_NAME : 'Cabinet Excellence'; ?></h2>
                 <p>Administration</p>
             </div>
             <ul class="sidebar-nav">
@@ -314,6 +337,13 @@
                     Messages
                     <?php if ($stats['new_contacts'] > 0): ?>
                         <span class="status-badge status-new" style="margin-left: 0.5rem;"><?php echo $stats['new_contacts']; ?></span>
+                    <?php endif; ?>
+                </a></li>
+                <li><a href="/admin/schedule">
+                    <i class="fas fa-calendar-alt"></i>
+                    Planning
+                    <?php if ($stats['appointments'] > 0): ?>
+                        <span class="status-badge status-pending" style="margin-left: 0.5rem;"><?php echo $stats['appointments']; ?></span>
                     <?php endif; ?>
                 </a></li>
                 <li><a href="/admin/settings">
@@ -363,6 +393,18 @@
                 <div class="stat-card">
                     <div class="stat-card-header">
                         <div>
+                            <div class="stat-value"><?php echo $stats['appointments']; ?></div>
+                            <div class="stat-label">Rendez-vous actifs</div>
+                        </div>
+                        <div class="stat-card-icon red">
+                            <i class="fas fa-calendar-alt"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-card-header">
+                        <div>
                             <div class="stat-value"><?php echo $stats['services']; ?></div>
                             <div class="stat-label">Services actifs</div>
                         </div>
@@ -402,6 +444,10 @@
                                     <h4><?php echo htmlspecialchars($contact['name']); ?></h4>
                                     <p><?php echo htmlspecialchars($contact['email']); ?> • <?php echo htmlspecialchars($contact['subject'] ?: 'Aucun sujet'); ?></p>
                                     <p><?php echo htmlspecialchars(substr($contact['message'], 0, 100)) . (strlen($contact['message']) > 100 ? '...' : ''); ?></p>
+                                    <?php if ($contact['appointment_time']): ?>
+                                        <p><strong>Rendez-vous :</strong> <?php echo date('d/m/Y H:i', strtotime($contact['appointment_time'])); ?> 
+                                           (<?php echo $contact['appointment_status'] === 'pending' ? 'En attente' : 'Confirmé'; ?>)</p>
+                                    <?php endif; ?>
                                 </div>
                                 <div class="contact-meta">
                                     <div class="status-badge <?php echo $contact['status'] === 'new' ? 'status-new' : 'status-read'; ?>">
@@ -419,6 +465,42 @@
                         <a href="/admin/contacts" class="btn btn-primary">
                             <i class="fas fa-eye"></i>
                             Voir tous les messages
+                        </a>
+                    </div>
+                <?php endif; ?>
+            </div>
+
+            <!-- Upcoming Appointments -->
+            <div class="section-card">
+                <h2 class="section-title">
+                    <i class="fas fa-calendar-alt"></i>
+                    Rendez-vous à venir
+                </h2>
+                
+                <?php if (empty($upcoming_appointments)): ?>
+                    <p style="color: #6b7280; text-align: center; padding: 2rem;">Aucun rendez-vous à venir pour le moment.</p>
+                <?php else: ?>
+                    <ul class="appointments-list">
+                        <?php foreach ($upcoming_appointments as $appointment): ?>
+                            <li class="appointment-item">
+                                <div class="appointment-info">
+                                    <h4><?php echo htmlspecialchars($appointment['name']); ?></h4>
+                                    <p><?php echo htmlspecialchars($appointment['email']); ?></p>
+                                    <p><strong>Date :</strong> <?php echo date('d/m/Y H:i', strtotime($appointment['appointment_time'])); ?></p>
+                                </div>
+                                <div class="appointment-meta">
+                                    <div class="status-badge <?php echo $appointment['appointment_status'] === 'pending' ? 'status-pending' : 'status-confirmed'; ?>">
+                                        <?php echo $appointment['appointment_status'] === 'pending' ? 'En attente' : 'Confirmé'; ?>
+                                    </div>
+                                </div>
+                            </li>
+                        <?php endforeach; ?>
+                    </ul>
+                    
+                    <div style="text-align: center; margin-top: 2rem;">
+                        <a href="/admin/schedule" class="btn btn-primary">
+                            <i class="fas fa-calendar-alt"></i>
+                            Voir tous les rendez-vous
                         </a>
                     </div>
                 <?php endif; ?>
