@@ -18,6 +18,7 @@ if (!isset($_SESSION['admin_logged_in'])) {
 }
 
 // Database connection
+require_once 'includes/config.php';
 require_once 'includes/Database.php';
 try {
     $db = new Database();

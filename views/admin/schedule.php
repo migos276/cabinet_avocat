@@ -331,26 +331,46 @@
                 <?php unset($_SESSION['flash_message']); ?>
             <?php endif; ?>
 
-            <!-- Add Slot Form -->
+            <!-- Add Daily Availability Form -->
             <div class="section-card">
                 <h2 class="section-title">
                     <i class="fas fa-plus-circle"></i>
-                    Ajouter un créneau
+                    Ajouter disponibilité quotidienne
                 </h2>
                 <form action="/admin/schedule" method="POST">
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(generateCSRFToken()); ?>">
-                    <input type="hidden" name="action" value="add_slot">
+                    <input type="hidden" name="action" value="add_daily_slots">
                     <div class="form-group">
-                        <label for="start_time">Date et heure de début</label>
-                        <input type="datetime-local" id="start_time" name="start_time" class="form-control" required>
+                        <label for="date">Date</label>
+                        <input type="date" id="date" name="date" class="form-control" required min="<?php echo date('Y-m-d'); ?>">
                     </div>
                     <div class="form-group">
-                        <label for="end_time">Date et heure de fin</label>
-                        <input type="datetime-local" id="end_time" name="end_time" class="form-control" required>
+                        <label>
+                            <input type="checkbox" id="all_day" name="all_day" checked>
+                            Disponible toute la journée (09:00 - 18:00)
+                        </label>
+                    </div>
+                    <div id="availability_times" style="display: none;">
+                        <div class="form-group">
+                            <label for="start_time">Heure de début</label>
+                            <input type="time" id="start_time" name="start_time" class="form-control" value="09:00" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="end_time">Heure de fin</label>
+                            <input type="time" id="end_time" name="end_time" class="form-control" value="18:00" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="break_start">Début de la pause (optionnel)</label>
+                        <input type="time" id="break_start" name="break_start" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="break_end">Fin de la pause (optionnel)</label>
+                        <input type="time" id="break_end" name="break_end" class="form-control">
                     </div>
                     <button type="submit" class="btn btn-primary">
                         <i class="fas fa-plus"></i>
-                        Ajouter le créneau
+                        Générer les slots
                     </button>
                 </form>
             </div>
@@ -371,8 +391,8 @@
                                     <h4><?php echo date('d/m/Y H:i', strtotime($slot['start_time'])); ?> - <?php echo date('H:i', strtotime($slot['end_time'])); ?></h4>
                                     <p>
                                         <strong>Statut :</strong>
-                                        <span class="status-badge <?php echo ($slot['is_available'] ?? false) ? 'status-available' : 'status-booked'; ?>">
-                                            <?php echo ($slot['is_available'] ?? false) ? 'Disponible' : 'Réservé'; ?>
+                                        <span class="status-badge <?php echo ($slot['is_booked'] ?? false) ? 'status-booked' : 'status-available'; ?>">
+                                            <?php echo ($slot['is_booked'] ?? false) ? 'Réservé' : 'Disponible'; ?>
                                         </span>
                                     </p>
                                     <?php if ($slot['appointment_count'] > 0): ?>
@@ -380,7 +400,7 @@
                                     <?php endif; ?>
                                 </div>
                                 <div>
-                                    <?php if (isset($slot['is_available']) && $slot['is_available']): ?>
+                                    <?php if (isset($slot['is_booked']) && !$slot['is_booked']): ?>
                                         <form action="/admin/schedule" method="POST" style="display: inline;">
                                             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(generateCSRFToken()); ?>">
                                             <input type="hidden" name="action" value="delete_slot">
@@ -412,12 +432,32 @@
             }
         }
 
-        // Set minimum date for datetime inputs to prevent past dates
+        // Gestion de la checkbox "toute la journée"
         document.addEventListener('DOMContentLoaded', () => {
-            const now = new Date();
-            const minDate = now.toISOString().slice(0, 16);
-            document.getElementById('start_time').setAttribute('min', minDate);
-            document.getElementById('end_time').setAttribute('min', minDate);
+            const allDayCheckbox = document.getElementById('all_day');
+            const availabilityTimes = document.getElementById('availability_times');
+            const startTime = document.getElementById('start_time');
+            const endTime = document.getElementById('end_time');
+            const dateInput = document.getElementById('date');
+
+            // Empêcher les dates passées
+            const today = new Date().toISOString().split('T')[0];
+            dateInput.setAttribute('min', today);
+
+            function toggleAvailability() {
+                if (allDayCheckbox.checked) {
+                    availabilityTimes.style.display = 'none';
+                    startTime.required = false;
+                    endTime.required = false;
+                } else {
+                    availabilityTimes.style.display = 'block';
+                    startTime.required = true;
+                    endTime.required = true;
+                }
+            }
+
+            allDayCheckbox.addEventListener('change', toggleAvailability);
+            toggleAvailability(); // Initialisation
         });
     </script>
 </body>

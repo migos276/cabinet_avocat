@@ -25,6 +25,7 @@ try {
     $router->add('/admin/login', 'AdminController', 'login', 'POST');
     $router->add('/admin/dashboard', 'AdminController', 'dashboard', 'GET');
     $router->add('/admin/content', 'AdminController', 'content', 'GET');
+    $router->add('/admin/content', 'AdminController', 'content', 'POST');
     $router->add('/admin/contacts', 'AdminController', 'contacts', 'GET');
     $router->add('/admin/schedule', 'AdminController', 'schedule', 'GET');
     $router->add('/admin/schedule', 'AdminController', 'schedule', 'POST');

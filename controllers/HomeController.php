@@ -32,10 +32,11 @@ class HomeController {
             $services = $this->getServices();
             $team = $this->getTeam();
             $news = $this->getNews();
+            $events = $this->getEvents();
             $appointment_slots = $this->getAvailableAppointmentSlots();
 
             // Validate expected structure to prevent view errors
-            if (!is_array($content) || !is_array($services) || !is_array($team) || !is_array($news) || !is_array($appointment_slots)) {
+            if (!is_array($content) || !is_array($services) || !is_array($team) || !is_array($news) || !is_array($appointment_slots) || !is_array($events)) {
                 error_log("Invalid data structure in HomeController::index");
                 throw new Exception("Données invalides récupérées depuis la base de données");
             }
@@ -47,6 +48,7 @@ class HomeController {
             $services = $this->getDefaultServices();
             $team = $this->getDefaultTeam();
             $news = $this->getDefaultNews();
+            $events = $this->getDefaultEvents();
             $appointment_slots = [];
             include 'views/home.php';
         }
@@ -57,9 +59,15 @@ class HomeController {
             return $this->sendJsonResponse(false, "Méthode non autorisée", [], 405);
         }
 
+        $transactionStarted = false;
+        
         try {
             $formData = $this->validateContactForm();
+            
+            // Start transaction and track its state
             $this->db->beginTransaction();
+            $transactionStarted = true;
+            
             $contactId = $this->saveContact($formData);
             $uploadedFiles = $this->handleFileUploads($contactId);
 
@@ -81,12 +89,29 @@ class HomeController {
                 $message .= " (" . count($uploadedFiles) . " fichier(s) joint(s))";
             }
 
-            $this->db->commit();
+            // Only commit if transaction was successfully started
+            if ($transactionStarted) {
+                $this->db->commit();
+                $transactionStarted = false;
+            }
+            
             return $this->sendJsonResponse(true, $message, ['uploaded_files' => count($uploadedFiles)]);
         } catch (Exception $e) {
-            $this->db->rollBack();
+            // Only rollback if transaction was successfully started
+            if ($transactionStarted) {
+                try {
+                    $this->db->rollBack();
+                    $transactionStarted = false;
+                } catch (Exception $rollbackException) {
+                    error_log("HomeController::handleContact Rollback Error: " . $rollbackException->getMessage());
+                    // Continue with original exception
+                }
+            }
+            
             error_log("HomeController::handleContact Error: " . $e->getMessage());
-            return $this->sendJsonResponse(false, "Erreur: " . $e->getMessage(), [], 400);
+            error_log("Stack trace: " . $e->getTraceAsString());
+            
+            return $this->sendJsonResponse(false, "Erreur lors du traitement de votre demande. Veuillez réessayer.", [], 400);
         }
     }
 
@@ -335,6 +360,18 @@ class HomeController {
         return !empty($news) ? $news : $this->getDefaultNews();
     }
 
+    private function getEvents() {
+        $stmt = $this->db->query("SELECT * FROM events WHERE is_active = 1 ORDER BY event_date DESC LIMIT 3");
+        $events = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        foreach ($events as &$item) {
+            $imagePath = $item['image_path'] ?? '';
+            if (empty($imagePath) || !file_exists($_SERVER['DOCUMENT_ROOT'] . $imagePath)) {
+                $item['image_path'] = '/public/uploads/events/default_event.jpg';
+            }
+        }
+        return !empty($events) ? $events : $this->getDefaultEvents();
+    }
+
     private function getDefaultContent() {
         return [
             'hero' => [
@@ -453,6 +490,27 @@ class HomeController {
                 'content' => 'Une analyse approfondie des récentes modifications du droit matrimonial.',
                 'image_path' => '/public/uploads/news/default_news.jpg',
                 'publish_date' => date('Y-m-d H:i:s', strtotime('-1 week')),
+                'is_active' => 1
+            ]
+        ];
+    }
+
+    private function getDefaultEvents() {
+        return [
+            [
+                'id' => 1,
+                'title' => 'Conférence sur le Droit Digital',
+                'content' => 'Rejoignez-nous pour une conférence sur les défis juridiques du monde digital.',
+                'image_path' => '/public/uploads/events/default_event.jpg',
+                'event_date' => date('Y-m-d H:i:s', strtotime('+1 month')),
+                'is_active' => 1
+            ],
+            [
+                'id' => 2,
+                'title' => 'Atelier Droit des Affaires',
+                'content' => 'Atelier pratique sur les contrats commerciaux.',
+                'image_path' => '/public/uploads/events/default_event.jpg',
+                'event_date' => date('Y-m-d H:i:s', strtotime('+2 months')),
                 'is_active' => 1
             ]
         ];

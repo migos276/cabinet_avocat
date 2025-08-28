@@ -5,10 +5,9 @@ class Router {
     private $routes = [];
 
     public function add($path, $controller, $method, $httpMethod = 'GET') {
-        $this->routes[$path] = [
+        $this->routes[strtoupper($httpMethod)][$path] = [
             'controller' => CONTROLLERS_PATH . $controller . '.php',
-            'method' => $method,
-            'http_method' => strtoupper($httpMethod)
+            'method' => $method
         ];
     }
 
@@ -31,25 +30,38 @@ class Router {
             $this->add('/admin/message/{id}', 'AdminController', 'messageDetail');
         }
 
-        // Correspondance des routes exactes
-        if (isset($this->routes[$url]) && $this->routes[$url]['http_method'] === $httpMethod) {
-            $route = $this->routes[$url];
+        // Debug logging
+        error_log("Routing request: $httpMethod $url");
+        if (!empty($this->routes[$httpMethod])) {
+            error_log("Available routes for $httpMethod: " . implode(', ', array_keys($this->routes[$httpMethod])));
+        }
+
+        // Correspondance des routes exactes - PRIORITÉ AUX ROUTES EXPLICITEMENT AJOUTÉES
+        if (isset($this->routes[$httpMethod][$url])) {
+            $route = $this->routes[$httpMethod][$url];
+            error_log("Exact route match found: $url -> " . $route['controller'] . '::' . $route['method']);
             return $this->dispatch($route['controller'], $route['method'], [], $queryParams);
         }
 
         // Correspondance des routes dynamiques
-        $params = [];
-        foreach ($this->routes as $path => $route) {
-            if ($route['http_method'] !== $httpMethod) continue;
-            $pattern = preg_replace('/\{([a-zA-Z0-9_]+)\}/', '([0-9a-zA-Z_-]+)', $path);
-            $pattern = '#^' . str_replace('/', '\/', $pattern) . '$#';
-            if (preg_match($pattern, $url, $matches)) {
-                array_shift($matches); // Supprimer la correspondance complète
-                $params = $matches;
-                return $this->dispatch($route['controller'], $route['method'], $params, $queryParams);
+        if (isset($this->routes[$httpMethod])) {
+            $params = [];
+            foreach ($this->routes[$httpMethod] as $path => $route) {
+                // Skip exact matches that we already checked
+                if ($path === $url) continue;
+                
+                $pattern = preg_replace('/\{([a-zA-Z0-9_]+)\}/', '([0-9a-zA-Z_-]+)', $path);
+                $pattern = '#^' . str_replace('/', '\/', $pattern) . '$#';
+                if (preg_match($pattern, $url, $matches)) {
+                    array_shift($matches); // Supprimer la correspondance complète
+                    $params = $matches;
+                    error_log("Dynamic route match found: $url -> " . $route['controller'] . '::' . $route['method'] . " with params: " . json_encode($params));
+                    return $this->dispatch($route['controller'], $route['method'], $params, $queryParams);
+                }
             }
         }
 
+        error_log("No route found for: $httpMethod $url");
         $this->notFound();
     }
 

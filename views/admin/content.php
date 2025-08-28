@@ -594,6 +594,7 @@
                 <button class="tab-button" onclick="openTab(event, 'services')"><i class="fas fa-gavel"></i>Services</button>
                 <button class="tab-button" onclick="openTab(event, 'team')"><i class="fas fa-users"></i>Équipe</button>
                 <button class="tab-button" onclick="openTab(event, 'news')"><i class="fas fa-newspaper"></i>Actualités</button>
+                <button class="tab-button" onclick="openTab(event, 'events')"><i class="fas fa-calendar"></i>Événements</button>
             </div>
 
             <!-- Contenu général -->
@@ -843,33 +844,33 @@
 
         <!-- Équipe -->
         <div id="team" class="tab-content">
-            <div class="add-team-form">
-                <h3 style="margin-bottom: 1rem;"><i class="fas fa-user-plus"></i>Ajouter un nouveau membre</h3>
-                <form method="POST" id="add-team-form" enctype="multipart/form-data" autocomplete="off">
-                    <input type="hidden" name="action" value="add_team">
-                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(generateCSRFToken()); ?>">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label class="form-label">Nom<span class="text-red-500">*</span></label>
-                            <input type="text" name="name" class="form-control" required autocomplete="off">
+                <div class="add-team-form">
+                    <h3 style="margin-bottom: 1rem;"><i class="fas fa-user-plus"></i>Ajouter un nouveau membre</h3>
+                    <form method="POST" id="add-team-form" enctype="multipart/form-data" autocomplete="off">
+                        <input type="hidden" name="action" value="add_team">
+                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(generateCSRFToken()); ?>">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Nom<span class="text-red-500">*</span></label>
+                                <input type="text" name="name" class="form-control" required autocomplete="off">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Poste<span class="text-red-500">*</span></label>
+                                <input type="text" name="position" class="form-control" required autocomplete="off">
+                            </div>
                         </div>
                         <div class="form-group">
-                            <label class="form-label">Poste<span class="text-red-500">*</span></label>
-                            <input type="text" name="position" class="form-control" required autocomplete="off">
+                            <label class="form-label">Description<span class="text-red-500">*</span></label>
+                            <textarea name="description" class="form-control textarea-lg" required autocomplete="off"></textarea>
                         </div>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Description<span class="text-red-500">*</span></label>
-                        <textarea name="description" class="form-control textarea-lg" required autocomplete="off"></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Image (JPG, PNG, max 5MB)<span class="text-gray-500 text-sm"> (optionnel)</span></label>
-                        <input type="file" name="image" class="form-control" accept="image/jpeg,image/png" onchange="previewImage(this, 'new_team_preview')">
-                        <img id="new_team_preview" class="image-preview" alt="Aperçu de l'image">
-                    </div>
-                    <button type="submit" class="btn btn-success"><i class="fas fa-plus"></i>Ajouter le membre</button>
-                </form>
-            </div>
+                        <div class="form-group">
+                            <label class="form-label">Image (JPG, PNG, max 5MB)<span class="text-gray-500 text-sm"> (optionnel)</span></label>
+                            <input type="file" name="image" class="form-control" accept="image/jpeg,image/png" onchange="previewImage(this, 'new_team_preview')">
+                            <img id="new_team_preview" class="image-preview" alt="Aperçu de l'image">
+                        </div>
+                        <button type="submit" class="btn btn-success"><i class="fas fa-plus"></i>Ajouter le membre</button>
+                    </form>
+                </div>
 
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                     <h3>Équipe existante</h3>
@@ -1019,6 +1020,106 @@
                 </div>
             </div>
 
+            <!-- Événements -->
+            <div id="events" class="tab-content">
+                <div class="add-news-form">
+                    <h3 style="margin-bottom: 1rem;"><i class="fas fa-calendar"></i>Ajouter un événement</h3>
+                    <form method="POST" id="add-event-form" enctype="multipart/form-data">
+                        <input type="hidden" name="action" value="add_event">
+                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(generateCSRFToken()); ?>">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Titre<span class="text-red-500">*</span></label>
+                                <input type="text" name="title" class="form-control" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Date de l'événement<span class="text-red-500">*</span></label>
+                                <input type="datetime-local" name="event_date" class="form-control" required value="<?php echo date('Y-m-d\TH:i'); ?>">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Contenu<span class="text-red-500">*</span></label>
+                            <div class="rich-editor">
+                                <div class="editor-toolbar">
+                                    <button type="button" class="editor-btn" onclick="formatText('bold')" title="Gras"><i class="fas fa-bold"></i></button>
+                                    <button type="button" class="editor-btn" onclick="formatText('italic')" title="Italique"><i class="fas fa-italic"></i></button>
+                                    <button type="button" class="editor-btn" onclick="insertList('ul')" title="Liste à puces"><i class="fas fa-list-ul"></i></button>
+                                    <button type="button" class="editor-btn" onclick="insertHeading()" title="Titre"><i class="fas fa-heading"></i></button>
+                                </div>
+                                <div class="editor-content" contenteditable="true" id="newEventContent"></div>
+                            </div>
+                            <input type="hidden" name="content" id="new_event_content">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Image (JPG, PNG, max 5MB)<span class="text-gray-500 text-sm"> (optionnel)</span></label>
+                            <input type="file" name="image" class="form-control" accept="image/jpeg,image/png" onchange="previewImage(this, 'new_event_preview')">
+                            <img id="new_event_preview" class="image-preview" alt="Aperçu de l'image">
+                        </div>
+                        <button type="submit" class="btn btn-success" onclick="saveNewEditorContent('event')"><i class="fas fa-plus"></i>Ajouter l'événement</button>
+                    </form>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h3>Événements existants</h3>
+                    <button class="btn btn-outline" onclick="toggleReorderMode('events')"><i class="fas fa-sort"></i>Mode réorganisation</button>
+                </div>
+
+                <div class="news-grid" id="eventsGrid">
+                    <?php foreach ($events as $index => $event): ?>
+                        <div class="news-card sortable-item" data-id="<?php echo htmlspecialchars($event['id']); ?>">
+                            <div class="order-indicator"><?php echo $index + 1; ?></div>
+                            <div class="drag-handle"><i class="fas fa-grip-vertical"></i></div>
+                            <form method="POST" id="event-form-<?php echo htmlspecialchars($event['id']); ?>" enctype="multipart/form-data">
+                                <input type="hidden" name="action" value="update_event">
+                                <input type="hidden" name="event_id" value="<?php echo htmlspecialchars($event['id']); ?>">
+                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(generateCSRFToken()); ?>">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                                    <h4><?php echo htmlspecialchars($event['title']); ?></h4>
+                                    <form method="POST" style="display: inline;" onsubmit="return confirm('Supprimer cet événement ?');">
+                                        <input type="hidden" name="action" value="delete_event">
+                                        <input type="hidden" name="event_id" value="<?php echo htmlspecialchars($event['id']); ?>">
+                                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(generateCSRFToken()); ?>">
+                                        <button type="submit" class="btn btn-mini btn-danger"><i class="fas fa-trash"></i></button>
+                                    </form>
+                                </div>
+                                <?php if (!empty($event['image_path'])): ?>
+                                    <img src="<?php echo htmlspecialchars($event['image_path']); ?>" alt="<?php echo htmlspecialchars($event['title']); ?>" class="news-image">
+                                <?php endif; ?>
+                                <img id="preview_<?php echo htmlspecialchars($event['id']); ?>" class="image-preview" alt="Aperçu de la nouvelle image">
+                                <div class="form-group">
+                                    <label class="form-label">Titre<span class="text-red-500">*</span></label>
+                                    <input type="text" name="title" class="form-control" value="<?php echo htmlspecialchars($event['title']); ?>" required>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Date de l'événement<span class="text-red-500">*</span></label>
+                                    <input type="datetime-local" name="event_date" class="form-control" value="<?php echo date('Y-m-d\TH:i', strtotime($event['event_date'])); ?>" required>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Contenu<span class="text-red-500">*</span></label>
+                                    <div class="rich-editor">
+                                        <div class="editor-toolbar">
+                                            <button type="button" class="editor-btn" onclick="formatText('bold')" title="Gras"><i class="fas fa-bold"></i></button>
+                                            <button type="button" class="editor-btn" onclick="formatText('italic')" title="Italique"><i class="fas fa-italic"></i></button>
+                                            <button type="button" class="editor-btn" onclick="insertList('ul')" title="Liste à puces"><i class="fas fa-list-ul"></i></button>
+                                            <button type="button" class="editor-btn" onclick="insertHeading()" title="Titre"><i class="fas fa-heading"></i></button>
+                                        </div>
+                                        <div class="editor-content" contenteditable="true" data-event-id="<?php echo htmlspecialchars($event['id']); ?>">
+                                            <?php echo !empty($event['content']) ? $event['content'] : '<p>Contenu à compléter...</p>'; ?>
+                                        </div>
+                                    </div>
+                                    <input type="hidden" name="content" id="event_content_<?php echo htmlspecialchars($event['id']); ?>">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Nouvelle image (JPG, PNG, max 5MB)<span class="text-gray-500 text-sm"> (optionnel)</span></label>
+                                    <input type="file" name="image" class="form-control" accept="image/jpeg,image/png" onchange="previewImage(this, 'preview_<?php echo htmlspecialchars($event['id']); ?>')">
+                                </div>
+                                <button type="submit" class="btn btn-success" onclick="saveEditorContent(<?php echo htmlspecialchars($event['id']); ?>, 'event')"><i class="fas fa-save"></i>Sauvegarder</button>
+                            </form>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+
             <!-- Modal d'édition de contenu -->
             <div id="editModal" class="modal">
                 <div class="modal-content">
@@ -1055,8 +1156,8 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
     <script>
-        let reorderModes = { services: false, team: false, news: false };
-        let sortables = { services: null, team: null, news: null };
+        let reorderModes = { services: false, team: false, news: false, events: false };
+        let sortables = { services: null, team: null, news: null, events: null };
 
         function openTab(evt, tabName) {
             document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
@@ -1161,18 +1262,21 @@
 
         function saveEditorContent(id, type) {
             const editor = document.querySelector(`[data-${type}-id="${id}"]`);
-            const hiddenInput = document.getElementById(`${type === 'service' ? 'detailed_content' : 'news_content'}_${id}`);
+            const hiddenInput = document.getElementById(`${type === 'service' ? 'detailed_content' : (type === 'news' ? 'news_content' : 'event_content')}_${id}`);
             if (editor && hiddenInput) hiddenInput.value = editor.innerHTML.trim();
             if (id && type === 'service') {
                 localStorage.removeItem(`service_draft_${id}`);
             } else if (id && type === 'news') {
                 localStorage.removeItem(`news_draft_${id}`);
+            } else if (id && type === 'event') {
+                localStorage.removeItem(`event_draft_${id}`);
             }
         }
 
         function saveNewEditorContent(type) {
-            const editor = document.getElementById(`new${type === 'service' ? 'Service' : 'News'}Content`);
-            const hiddenInput = document.getElementById(`new_${type === 'service' ? 'detailed_content' : 'news_content'}`);
+            let editor = document.getElementById(`new${type === 'service' ? 'Service' : 'News'}Content`);
+            if (type === 'event') editor = document.getElementById('newEventContent');
+            const hiddenInput = document.getElementById(`new_${type === 'service' ? 'detailed_content' : (type === 'news' ? 'news_content' : 'event_content')}`);
             if (editor && hiddenInput) hiddenInput.value = editor.innerHTML.trim();
         }
 
@@ -1246,7 +1350,7 @@
         forms.forEach(form => {
             form.addEventListener('submit', e => {
                 // Correction : ne pas empêcher le submit pour les formulaires sans JS/AJAX
-                if (form.id !== 'add-team-form' && form.id !== 'add-service-form' && form.id !== 'add-news-form') return;
+                if (form.id !== 'add-team-form' && form.id !== 'add-service-form' && form.id !== 'add-news-form' && form.id !== 'add-event-form') return;
 
                 e.preventDefault();
                 const requiredFields = form.querySelectorAll('input[required], textarea[required], select[required]');
@@ -1307,8 +1411,9 @@
             });
             document.querySelectorAll('.editor-content').forEach(editor => {
                 editor.addEventListener('input', function() {
-                    const id = this.dataset.serviceId || this.dataset.newsId;
-                    const type = this.dataset.serviceId ? 'service' : 'news';
+                    const id = this.dataset.serviceId || this.dataset.newsId || this.dataset.eventId;
+                    let type = this.dataset.serviceId ? 'service' : 'news';
+                    if (this.dataset.eventId) type = 'event';
                     if (id) {
                         clearTimeout(window.autoSaveTimeout);
                         window.autoSaveTimeout = setTimeout(() => {
@@ -1319,8 +1424,9 @@
                 });
             });
             document.querySelectorAll('.editor-content').forEach(editor => {
-                const id = editor.dataset.serviceId || editor.dataset.newsId;
-                const type = editor.dataset.serviceId ? 'service' : 'news';
+                const id = editor.dataset.serviceId || editor.dataset.newsId || editor.dataset.eventId;
+                let type = editor.dataset.serviceId ? 'service' : 'news';
+                if (editor.dataset.eventId) type = 'event';
                 if (id) {
                     const draft = localStorage.getItem(`${type}_draft_${id}`);
                     if (draft && confirm(`Un brouillon a été trouvé pour ce ${type}. Voulez-vous le restaurer ?`)) {

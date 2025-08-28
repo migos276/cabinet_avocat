@@ -103,6 +103,17 @@ class Database {
                     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
                 )",
+                "CREATE TABLE IF NOT EXISTS events (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    title TEXT NOT NULL,
+                    content TEXT NOT NULL,
+                    image_path TEXT DEFAULT '/public/uploads/events/default_event.jpg',
+                    event_date DATETIME NOT NULL,
+                    is_active INTEGER DEFAULT 1,
+                    order_position INTEGER DEFAULT 0,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )",
                 "CREATE TABLE IF NOT EXISTS contact_files (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     contact_id INTEGER NOT NULL,
@@ -202,6 +213,20 @@ class Database {
         if (!$has_payment_method) {
             $this->connection->exec("ALTER TABLE contacts ADD COLUMN payment_method VARCHAR(20)");
         }
+
+        // Ensure order_position column in events
+        $columns = $this->connection->query("PRAGMA table_info(events)")->fetchAll(PDO::FETCH_ASSOC);
+        $has_order_position = false;
+        foreach ($columns as $column) {
+            if ($column['name'] === 'order_position') {
+                $has_order_position = true;
+                break;
+            }
+        }
+        if (!$has_order_position) {
+            $this->connection->exec("ALTER TABLE events ADD COLUMN order_position INTEGER DEFAULT 0");
+            $this->connection->exec("UPDATE events SET order_position = id WHERE order_position IS NULL");
+        }
     }
 
     private function createIndexes() {
@@ -215,6 +240,7 @@ class Database {
             "CREATE INDEX IF NOT EXISTS idx_services_active ON services(is_active, order_position)",
             "CREATE INDEX IF NOT EXISTS idx_team_members_active ON team_members(is_active, order_position)",
             "CREATE INDEX IF NOT EXISTS idx_news_active ON news(is_active, order_position)",
+            "CREATE INDEX IF NOT EXISTS idx_events_active ON events(is_active, order_position)",
             "CREATE INDEX IF NOT EXISTS idx_appointment_slots_time ON appointment_slots(start_time, end_time)",
             "CREATE INDEX IF NOT EXISTS idx_appointments_slot_id ON appointments(slot_id)"
         ];
@@ -231,7 +257,7 @@ class Database {
 
     private function insertDefaultData() {
         // Check if any table is populated to avoid redundant insertions
-        $tables = ['site_content', 'services', 'team_members', 'news', 'admin_users', 'appointment_slots'];
+        $tables = ['site_content', 'services', 'team_members', 'news', 'admin_users', 'appointment_slots', 'events'];
         $isPopulated = false;
         foreach ($tables as $table) {
             $count = $this->connection->query("SELECT COUNT(*) FROM $table")->fetchColumn();
@@ -246,6 +272,7 @@ class Database {
         $this->insertDefaultServices();
         $this->insertDefaultTeam();
         $this->insertDefaultNews();
+        $this->insertDefaultEvents();
         $this->insertDefaultAdmin();
         $this->insertDefaultAppointmentSlots();
     }
@@ -426,6 +453,49 @@ class Database {
         }
     }
 
+    private function insertDefaultEvents() {
+        $sql = "SELECT 1 FROM events WHERE title = ? LIMIT 1";
+        $stmt = $this->connection->prepare($sql);
+        $defaultEvents = [
+            [
+                'title' => 'Conférence sur le Droit Digital',
+                'content' => 'Rejoignez-nous pour une conférence sur les défis juridiques du monde digital.',
+                'image_path' => '/public/uploads/events/default_event.jpg',
+                'event_date' => date('Y-m-d H:i:s', strtotime('+1 month')),
+                'order_position' => 1,
+                'is_active' => 1
+            ],
+            [
+                'title' => 'Atelier Droit des Affaires',
+                'content' => 'Atelier pratique sur les contrats commerciaux et la protection des entreprises.',
+                'image_path' => '/public/uploads/events/default_event.jpg',
+                'event_date' => date('Y-m-d H:i:s', strtotime('+2 months')),
+                'order_position' => 2,
+                'is_active' => 1
+            ]
+        ];
+
+        $insertSql = "INSERT INTO events (title, content, image_path, event_date, order_position, is_active) 
+                      VALUES (?, ?, ?, ?, ?, ?)";
+        $insertStmt = $this->connection->prepare($insertSql);
+        foreach ($defaultEvents as $event) {
+            $stmt->execute([$event['title']]);
+            if ($stmt->fetch()) continue; // Skip if record exists
+            try {
+                $insertStmt->execute([
+                    $event['title'],
+                    $event['content'],
+                    $event['image_path'],
+                    $event['event_date'],
+                    $event['order_position'],
+                    $event['is_active']
+                ]);
+            } catch (PDOException $e) {
+                error_log('Error inserting default event: ' . $e->getMessage());
+            }
+        }
+    }
+
     private function insertDefaultAdmin() {
         $sql = "SELECT 1 FROM admin_users WHERE username = ? LIMIT 1";
         $stmt = $this->connection->prepare($sql);
@@ -453,17 +523,17 @@ class Database {
         $defaultSlots = [
             [
                 'start_time' => date('Y-m-d 09:00:00', strtotime('next Monday')),
+                'end_time' => date('Y-m-d 09:30:00', strtotime('next Monday')),
+                'is_booked' => 0
+            ],
+            [
+                'start_time' => date('Y-m-d 09:30:00', strtotime('next Monday')),
                 'end_time' => date('Y-m-d 10:00:00', strtotime('next Monday')),
                 'is_booked' => 0
             ],
             [
                 'start_time' => date('Y-m-d 10:00:00', strtotime('next Monday')),
-                'end_time' => date('Y-m-d 11:00:00', strtotime('next Monday')),
-                'is_booked' => 0
-            ],
-            [
-                'start_time' => date('Y-m-d 14:00:00', strtotime('next Monday')),
-                'end_time' => date('Y-m-d 15:00:00', strtotime('next Monday')),
+                'end_time' => date('Y-m-d 10:30:00', strtotime('next Monday')),
                 'is_booked' => 0
             ]
         ];

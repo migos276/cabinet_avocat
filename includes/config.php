@@ -5,6 +5,11 @@ define('ENV', 'development'); // 'development' ou 'production'
 // Démarrer la session avec des paramètres sécurisés
 if (session_status() === PHP_SESSION_NONE) {
     $isSecure = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443;
+    // Set session save path
+    session_save_path(__DIR__ . '/../tmp/sessions');
+    if (!is_dir(session_save_path())) {
+        mkdir(session_save_path(), 0755, true);
+    }
     session_start([
         'name' => 'cabinet_session',
         'cookie_httponly' => true,

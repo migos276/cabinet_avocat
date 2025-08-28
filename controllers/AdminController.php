@@ -7,6 +7,7 @@ class AdminController {
     private $uploadDir = CONTACT_UPLOAD_PATH;
     private $teamUploadDir = TEAM_UPLOAD_PATH;
     private $newsUploadDir = NEWS_UPLOAD_PATH;
+    private $eventsUploadDir = '/public/uploads/events/';
 
     public function __construct() {
         if (session_status() === PHP_SESSION_NONE) {
@@ -61,7 +62,7 @@ class AdminController {
         if ($file['error'] === UPLOAD_ERR_NO_FILE) {
             error_log("No file uploaded for existing_id=$existing_id");
             if ($existing_id) {
-                $table = ($upload_dir === $this->teamUploadDir) ? 'team_members' : 'news';
+                $table = ($upload_dir === $this->teamUploadDir) ? 'team_members' : (($upload_dir === $this->newsUploadDir) ? 'news' : 'events');
                 $stmt = $this->db->prepare("SELECT image_path FROM $table WHERE id = ?");
                 $stmt->execute([$existing_id]);
                 $existing_path = $stmt->fetchColumn();
@@ -91,13 +92,13 @@ class AdminController {
         }
 
         $extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-        $filename = uniqid(($upload_dir === $this->teamUploadDir ? 'team_' : 'news_')) . '.' . $extension;
+        $filename = uniqid(($upload_dir === $this->teamUploadDir ? 'team_' : ($upload_dir === $this->newsUploadDir ? 'news_' : 'event_'))) . '.' . $extension;
         $destination = $absolute_dir . $filename;
         $relative_path = $upload_dir . $filename;
 
         if (move_uploaded_file($file['tmp_name'], $destination)) {
             if ($existing_id) {
-                $table = ($upload_dir === $this->teamUploadDir) ? 'team_members' : 'news';
+                $table = ($upload_dir === $this->teamUploadDir) ? 'team_members' : (($upload_dir === $this->newsUploadDir) ? 'news' : 'events');
                 $stmt = $this->db->prepare("SELECT image_path FROM $table WHERE id = ?");
                 $stmt->execute([$existing_id]);
                 $old_image = $stmt->fetchColumn();
@@ -530,6 +531,113 @@ class AdminController {
                         error_log("Reorder news failed: Invalid order data");
                         $this->redirectWithMessage(false, 'Erreur : Données d\'ordre invalides.');
                     }
+                } elseif ($action === 'add_event') {
+                    $title = htmlspecialchars(trim($_POST['title'] ?? ''));
+                    $content = htmlspecialchars(trim($_POST['content'] ?? ''));
+                    $event_date = trim($_POST['event_date'] ?? '');
+
+                    error_log("Add event attempt: title=$title, content_length=" . strlen($content) . ", event_date=$event_date");
+
+                    if ($title && $content && $event_date) {
+                        $image_path = $this->handleImageUpload($_FILES['image'] ?? [], null, $this->eventsUploadDir);
+                        if (is_string($image_path) && strpos($image_path, 'Erreur') === 0) {
+                            error_log("Image upload failed for event: $image_path");
+                            $this->redirectWithMessage(false, $image_path);
+                        } else {
+                            $stmt = $this->db->prepare("
+                                INSERT INTO events (title, content, image_path, event_date, is_active, order_position, created_at, updated_at)
+                                VALUES (?, ?, ?, ?, 1, (SELECT COALESCE(MAX(order_position), 0) + 1 FROM events), datetime('now'), datetime('now'))
+                            ");
+                            if (!$stmt->execute([$title, $content, $image_path, $event_date])) {
+                                error_log("Failed to add event: title=$title");
+                                $this->redirectWithMessage(false, 'Erreur : Échec de l\'ajout de l\'événement.');
+                            }
+                            error_log("Event added successfully: ID=" . $this->db->lastInsertId());
+                            $this->redirectWithMessage(true, 'Événement ajouté avec succès!');
+                        }
+                    } else {
+                        $errors = [];
+                        if (!$title) $errors[] = 'Titre manquant';
+                        if (!$content) $errors[] = 'Contenu manquant';
+                        if (!$event_date) $errors[] = 'Date de l\'événement manquante';
+                        error_log("Add event failed: " . implode(', ', $errors));
+                        $this->redirectWithMessage(false, 'Erreur : ' . implode(', ', $errors));
+                    }
+                } elseif ($action === 'update_event') {
+                    $id = trim($_POST['event_id'] ?? '');
+                    $title = htmlspecialchars(trim($_POST['title'] ?? ''));
+                    $content = htmlspecialchars(trim($_POST['content'] ?? ''));
+                    $event_date = trim($_POST['event_date'] ?? '');
+
+                    error_log("Update event attempt: id=$id, title=$title, content_length=" . strlen($content) . ", event_date=$event_date");
+
+                    if ($id && $title && $content && $event_date) {
+                        $image_path = $this->handleImageUpload($_FILES['image'] ?? [], $id, $this->eventsUploadDir);
+                        if (is_string($image_path) && strpos($image_path, 'Erreur') === 0) {
+                            error_log("Image upload failed for event update: $image_path");
+                            $this->redirectWithMessage(false, $image_path);
+                        } else {
+                            $stmt = $this->db->prepare("
+                                UPDATE events 
+                                SET title = ?, content = ?, image_path = ?, event_date = ?, updated_at = datetime('now')
+                                WHERE id = ?
+                            ");
+                            if (!$stmt->execute([$title, $content, $image_path, $event_date, $id])) {
+                                error_log("Failed to update event: id=$id");
+                                $this->redirectWithMessage(false, 'Erreur : Échec de la mise à jour de l\'événement.');
+                            }
+                            error_log("Event updated successfully: ID=$id");
+                            $this->redirectWithMessage(true, 'Événement mis à jour avec succès!');
+                        }
+                    } else {
+                        $errors = [];
+                        if (!$id) $errors[] = 'ID manquant';
+                        if (!$title) $errors[] = 'Titre manquant';
+                        if (!$content) $errors[] = 'Contenu manquant';
+                        if (!$event_date) $errors[] = 'Date de l\'événement manquante';
+                        error_log("Update event failed: " . implode(', ', $errors));
+                        $this->redirectWithMessage(false, 'Erreur : ' . implode(', ', $errors));
+                    }
+                } elseif ($action === 'delete_event') {
+                    $id = trim($_POST['event_id'] ?? '');
+                    if ($id) {
+                        $stmt = $this->db->prepare("SELECT image_path FROM events WHERE id = ?");
+                        $stmt->execute([$id]);
+                        $image_path = $stmt->fetchColumn();
+                        if ($image_path && file_exists($_SERVER['DOCUMENT_ROOT'] . $image_path)) {
+                            if (!unlink($_SERVER['DOCUMENT_ROOT'] . $image_path)) {
+                                error_log("Failed to delete event image: $image_path");
+                            } else {
+                                error_log("Deleted event image: $image_path");
+                            }
+                        }
+                        $stmt = $this->db->prepare("DELETE FROM events WHERE id = ?");
+                        if (!$stmt->execute([$id])) {
+                            error_log("Failed to delete event: id=$id");
+                            $this->redirectWithMessage(false, 'Erreur : Échec de la suppression de l\'événement.');
+                        }
+                        error_log("Event deleted successfully: ID=$id");
+                        $this->redirectWithMessage(true, 'Événement supprimé avec succès!');
+                    } else {
+                        error_log("Delete event failed: Missing ID");
+                        $this->redirectWithMessage(false, 'Erreur : ID de l\'événement manquant.');
+                    }
+                } elseif ($action === 'reorder_events') {
+                    $orders = json_decode($_POST['orders'] ?? '{}', true);
+                    if ($orders && is_array($orders)) {
+                        foreach ($orders as $id => $position) {
+                            $stmt = $this->db->prepare("UPDATE events SET order_position = ? WHERE id = ?");
+                            if (!$stmt->execute([(int)$position, (int)$id])) {
+                                error_log("Failed to reorder event: id=$id, position=$position");
+                                $this->redirectWithMessage(false, 'Erreur : Échec de la réorganisation des événements.');
+                            }
+                        }
+                        error_log("Events order updated successfully");
+                        $this->redirectWithMessage(true, 'Ordre des événements mis à jour avec succès!');
+                    } else {
+                        error_log("Reorder events failed: Invalid order data");
+                        $this->redirectWithMessage(false, 'Erreur : Données d\'ordre invalides.');
+                    }
                 } else {
                     error_log("Unknown action: $action");
                     $this->redirectWithMessage(false, 'Action non reconnue.');
@@ -550,6 +658,7 @@ class AdminController {
             $services = $this->db->query("SELECT * FROM services WHERE is_active = 1 ORDER BY order_position")->fetchAll(PDO::FETCH_ASSOC);
             $team = $this->db->query("SELECT * FROM team_members WHERE is_active = 1 ORDER BY order_position")->fetchAll(PDO::FETCH_ASSOC);
             $news = $this->db->query("SELECT * FROM news WHERE is_active = 1 ORDER BY order_position")->fetchAll(PDO::FETCH_ASSOC);
+            $events = $this->db->query("SELECT * FROM events WHERE is_active = 1 ORDER BY order_position")->fetchAll(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
             error_log("Database error in content: " . $e->getMessage());
             $error = 'Erreur serveur lors du chargement du contenu.';
@@ -652,7 +761,7 @@ class AdminController {
                     }
                     
                     if ($slot_id) {
-                        $stmt = $this->db->prepare("UPDATE appointment_slots SET is_available = 1, updated_at = datetime('now') WHERE id = ?");
+                        $stmt = $this->db->prepare("UPDATE appointment_slots SET is_booked = 0, updated_at = datetime('now') WHERE id = ?");
                         $stmt->execute([$slot_id]);
                     }
                     $this->redirectWithMessage(true, 'Rendez-vous annulé', '/admin/contacts');
@@ -747,30 +856,105 @@ class AdminController {
             $action = trim($_POST['action'] ?? '');
 
             try {
-                if ($action === 'add_slot') {
-                    $start_time = trim($_POST['start_time'] ?? '');
-                    $end_time = trim($_POST['end_time'] ?? '');
+                if ($action === 'add_daily_slots') {
+                    $date = trim($_POST['date'] ?? '');
+                    $all_day = isset($_POST['all_day']);
+                    $start_time = $all_day ? '09:00' : trim($_POST['start_time'] ?? '');
+                    $end_time = $all_day ? '18:00' : trim($_POST['end_time'] ?? '');
+                    $break_start = trim($_POST['break_start'] ?? '');
+                    $break_end = trim($_POST['break_end'] ?? '');
 
-                    if ($start_time && $end_time) {
-                        $start_datetime = DateTime::createFromFormat('Y-m-d\TH:i', $start_time);
-                        $end_datetime = DateTime::createFromFormat('Y-m-d\TH:i', $end_time);
+                    error_log("Add daily slots attempt: date=$date, all_day=" . ($all_day ? 'true' : 'false') . ", start_time=$start_time, end_time=$end_time, break_start=$break_start, break_end=$break_end");
 
-                        if (!$start_datetime || !$end_datetime || $start_datetime >= $end_datetime || $start_datetime < new DateTime()) {
-                            $this->redirectWithMessage(false, 'Erreur : Dates/heures invalides ou dans le passé.', '/admin/schedule');
-                        }
-
-                        $stmt = $this->db->prepare("
-                            INSERT INTO appointment_slots (start_time, end_time, is_available, created_at, updated_at)
-                            VALUES (?, ?, 1, datetime('now'), datetime('now'))
-                        ");
-                        if (!$stmt->execute([$start_datetime->format('Y-m-d H:i:s'), $end_datetime->format('Y-m-d H:i:s')])) {
-                            error_log("Failed to add appointment slot: start_time=$start_time");
-                            $this->redirectWithMessage(false, 'Erreur : Échec de l\'ajout du créneau.', '/admin/schedule');
-                        }
-                        $this->redirectWithMessage(true, 'Créneau ajouté avec succès!', '/admin/schedule');
-                    } else {
-                        $this->redirectWithMessage(false, 'Erreur : Date de début et de fin requises.', '/admin/schedule');
+                    // Validate inputs
+                    if (!$date || !DateTime::createFromFormat('Y-m-d', $date)) {
+                        error_log("Invalid or missing date: $date");
+                        $this->redirectWithMessage(false, 'Erreur : Date invalide.', '/admin/schedule');
                     }
+
+                    $date_obj = new DateTime($date);
+                    if ($date_obj < new DateTime('today')) {
+                        error_log("Date is in the past: $date");
+                        $this->redirectWithMessage(false, 'Erreur : La date ne peut pas être dans le passé.', '/admin/schedule');
+                    }
+
+                    if (!$all_day && (!$start_time || !$end_time)) {
+                        error_log("Missing start_time or end_time when all_day is not selected");
+                        $this->redirectWithMessage(false, 'Erreur : Heure de début et de fin requises.', '/admin/schedule');
+                    }
+
+                    $start_datetime = new DateTime("$date $start_time");
+                    $end_datetime = new DateTime("$date $end_time");
+                    if ($start_datetime >= $end_datetime) {
+                        error_log("Invalid time range: start_time=$start_time, end_time=$end_time");
+                        $this->redirectWithMessage(false, 'Erreur : L\'heure de début doit être avant l\'heure de fin.', '/admin/schedule');
+                    }
+
+                    // Validate break times if provided
+                    $break_start_datetime = $break_end_datetime = null;
+                    if ($break_start && $break_end) {
+                        $break_start_datetime = new DateTime("$date $break_start");
+                        $break_end_datetime = new DateTime("$date $break_end");
+                        if ($break_start_datetime >= $break_end_datetime || 
+                            $break_start_datetime < $start_datetime || 
+                            $break_end_datetime > $end_datetime) {
+                            error_log("Invalid break time range: break_start=$break_start, break_end=$break_end");
+                            $this->redirectWithMessage(false, 'Erreur : Période de pause invalide.', '/admin/schedule');
+                        }
+                    }
+
+                    // Generate 30-minute slots
+                    $this->db->beginTransaction();
+                    $slot_duration = 30 * 60; // 30 minutes in seconds
+                    $current_time = clone $start_datetime;
+                    $insertStmt = $this->db->prepare("
+                        INSERT INTO appointment_slots (start_time, end_time, is_booked, created_at, updated_at)
+                        VALUES (?, ?, 0, datetime('now'), datetime('now'))
+                    ");
+                    $slot_count = 0;
+
+                    while ($current_time < $end_datetime) {
+                        $slot_end = clone $current_time;
+                        $slot_end->modify("+30 minutes");
+
+                        // Skip if slot falls within break period
+                        if ($break_start_datetime && $break_end_datetime &&
+                            $current_time < $break_end_datetime && 
+                            $slot_end > $break_start_datetime) {
+                            $current_time->modify("+30 minutes");
+                            continue;
+                        }
+
+                        // Check for existing slot to avoid duplicates
+                        $checkStmt = $this->db->prepare("
+                            SELECT 1 FROM appointment_slots 
+                            WHERE start_time = ? AND end_time = ?
+                        ");
+                        $checkStmt->execute([
+                            $current_time->format('Y-m-d H:i:s'),
+                            $slot_end->format('Y-m-d H:i:s')
+                        ]);
+                        if ($checkStmt->fetch()) {
+                            $current_time->modify("+30 minutes");
+                            continue;
+                        }
+
+                        // Insert slot
+                        if (!$insertStmt->execute([
+                            $current_time->format('Y-m-d H:i:s'),
+                            $slot_end->format('Y-m-d H:i:s')
+                        ])) {
+                            $this->db->rollBack();
+                            error_log("Failed to insert slot: start=" . $current_time->format('Y-m-d H:i:s'));
+                            $this->redirectWithMessage(false, 'Erreur : Échec de l\'ajout des créneaux.', '/admin/schedule');
+                        }
+                        $slot_count++;
+                        $current_time->modify("+30 minutes");
+                    }
+
+                    $this->db->commit();
+                    error_log("Added $slot_count slots for date=$date");
+                    $this->redirectWithMessage(true, "$slot_count créneaux ajoutés avec succès!", '/admin/schedule');
                 } elseif ($action === 'delete_slot') {
                     $id = trim($_POST['slot_id'] ?? '');
                     if ($id) {
@@ -786,8 +970,10 @@ class AdminController {
                             error_log("Failed to delete appointment slot: id=$id");
                             $this->redirectWithMessage(false, 'Erreur : Échec de la suppression du créneau.', '/admin/schedule');
                         }
+                        error_log("Slot deleted successfully: ID=$id");
                         $this->redirectWithMessage(true, 'Créneau supprimé avec succès!', '/admin/schedule');
                     } else {
+                        error_log("Delete slot failed: Missing slot ID");
                         $this->redirectWithMessage(false, 'Erreur : ID du créneau manquant.', '/admin/schedule');
                     }
                 } else {
@@ -795,6 +981,7 @@ class AdminController {
                     $this->redirectWithMessage(false, 'Action non reconnue.', '/admin/schedule');
                 }
             } catch (Exception $e) {
+                $this->db->rollBack();
                 error_log("Server error in schedule action $action: " . $e->getMessage());
                 $this->redirectWithMessage(false, 'Erreur serveur : ' . $e->getMessage(), '/admin/schedule');
             }

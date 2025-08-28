@@ -67,12 +67,13 @@
                 </div>
             </a>
             <ul class="navbar-nav" role="menubar">
-                <li role="none"><a href="#home" class="nav-link active" role="menuitem"><i class="fas fa-home" aria-hidden="true"></i> Accueil</a></li>
-                <li role="none"><a href="#about" class="nav-link" role="menuitem"><i class="fas fa-info-circle" aria-hidden="true"></i> À propos</a></li>
-                <li role="none"><a href="#services" class="nav-link" role="menuitem"><i class="fas fa-gavel" aria-hidden="true"></i> Nos services</a></li>
-                <li role="none"><a href="#team" class="nav-link" role="menuitem"><i class="fas fa-users" aria-hidden="true"></i> Équipe</a></li>
-                <li role="none"><a href="#news" class="nav-link" role="menuitem"><i class="fas fa-newspaper" aria-hidden="true"></i> Actualités</a></li>
-                <li role="none"><a href="#contact" class="btn btn-primary" role="menuitem"><i class="fas fa-calendar-alt" aria-hidden="true"></i> Contact</a></li>
+                <li role="none"><a href="#home" class="nav-link active" role="menuitem"><i class="fas fa-home" aria-hidden="true"></i>  Accueil</a></li>
+                <li role="none"><a href="#about" class="nav-link" role="menuitem"><i class="fas fa-info-circle" aria-hidden="true"></i>  À propos</a></li>
+                <li role="none"><a href="#services" class="nav-link" role="menuitem"><i class="fas fa-gavel" aria-hidden="true"></i>  Nos services</a></li>
+                <li role="none"><a href="#team" class="nav-link" role="menuitem"><i class="fas fa-users" aria-hidden="true"></i>  Équipe</a></li>
+                <li role="none"><a href="#news" class="nav-link" role="menuitem"><i class="fas fa-newspaper" aria-hidden="true"></i>  Actualités</a></li>
+                <li role="none"><a href="#events" class="nav-link" role="menuitem"><i class="fas fa-calendar" aria-hidden="true"></i> Evenements</a></li>
+                <li role="none"><a href="#contact" class="btn btn-primary" role="menuitem"><i class="fas fa-calendar-alt" aria-hidden="true"></i>  Contact</a></li>
             </ul>
             <button class="mobile-menu-toggle" aria-controls="mobileMenu" aria-expanded="false" aria-label="Toggle navigation">
                 <i class="fas fa-bars"></i>
@@ -84,6 +85,7 @@
                     <a href="#services" class="nav-link" role="menuitem">Nos services</a>
                     <a href="#team" class="nav-link" role="menuitem">Équipe</a>
                     <a href="#news" class="nav-link" role="menuitem">Actualités</a>
+                    <a href="#events" class="nav-link" role="menuitem">Evenements</a>
                     <a href="#contact" class="nav-link" role="menuitem">Contact</a>
                 </div>
             </div>
@@ -98,7 +100,6 @@
                 <p class="lead"><?php echo h(isset($content['hero']['subtitle']) ? $content['hero']['subtitle'] : 'Depuis plus de 20 ans, nous accompagnons nos clients avec expertise, intégrité et dévouement dans tous leurs défis juridiques les plus complexes.'); ?></p>
                 <div class="hero-buttons">
                     <a href="#contact" class="btn btn-secondary btn-lg" aria-label="Prendre un rendez-vous"><i class="fas fa-calendar-alt" aria-hidden="true"></i> Prendre rendez-vous</a>
-                    <a href="#services" class="btn btn-outline btn-lg" aria-label="Découvrir nos services"><i class="fas fa-gavel" aria-hidden="true"></i> Découvrir nos services</a>
                 </div>
             </div>
         </div>
@@ -201,16 +202,30 @@
         </div>
     </section>
 
-    <!-- Services Section -->
-    <section id="services" class="section" aria-labelledby="services-title">
-        <div class="container">
-            <div class="section-title">
-                <span class="badge">Nos spécialisations</span>
-                <h2 id="services-title"><?php echo h(isset($content['services']['title']) ? $content['services']['title'] : 'Domaines d\'Expertise'); ?></h2>
-                <p class="lead"><?php echo h(isset($content['services']['subtitle']) ? $content['services']['subtitle'] : 'Une expertise reconnue dans des domaines juridiques essentiels pour répondre à tous vos besoins'); ?></p>
-            </div>
-            <div class="services-grid" id="services-grid" role="region" aria-live="polite">
+<!-- Services Section -->
+<section id="services" class="section" aria-labelledby="services-title">
+    <div class="container">
+        <div class="section-title">
+            <span class="badge">Nos spécialisations</span>
+            <h2 id="services-title"><?php echo h(isset($content['services']['title']) ? $content['services']['title'] : 'Domaines d\'Expertise'); ?></h2>
+            <p class="lead"><?php echo h(isset($content['services']['subtitle']) ? $content['services']['subtitle'] : 'Une expertise reconnue dans des domaines juridiques essentiels pour répondre à tous vos besoins'); ?></p>
+        </div>
+        <div class="services-grid-infinite" id="services-grid" role="region" aria-live="polite">
+            <div class="services-track">
                 <?php if (isset($services) && is_array($services) && !empty($services)): ?>
+                    <?php foreach ($services as $service): ?>
+                    <div class="service-card">
+                        <div class="service-icon" style="background: <?php echo h($service['color'] ?? '#3b82f6'); ?>">
+                            <i class="<?php echo h($service['icon'] ?? 'fas fa-gavel'); ?>" aria-hidden="true"></i>
+                        </div>
+                        <h4><?php echo h($service['title'] ?? 'Service'); ?></h4>
+                        <p><?php echo h($service['description'] ?? 'Description du service'); ?></p>
+                        <a href="/service/<?php echo h($service['id'] ?? ''); ?>" class="btn btn-outline" aria-label="En savoir plus sur <?php echo h($service['title'] ?? 'ce service'); ?>">
+                            <i class="fas fa-arrow-right" aria-hidden="true"></i> En savoir plus
+                        </a>
+                    </div>
+                    <?php endforeach; ?>
+                    <!-- Duplication pour l'effet infini -->
                     <?php foreach ($services as $service): ?>
                     <div class="service-card">
                         <div class="service-icon" style="background: <?php echo h($service['color'] ?? '#3b82f6'); ?>">
@@ -232,11 +247,20 @@
                         <p>Veuillez patienter pendant que nous chargeons nos domaines d'expertise.</p>
                         <a href="#contact" class="btn btn-outline" aria-label="Nous contacter"><i class="fas fa-arrow-right" aria-hidden="true"></i> Nous contacter</a>
                     </div>
+                    <!-- Duplication pour l'effet infini -->
+                    <div class="service-card">
+                        <div class="service-icon" style="background: #3b82f6;">
+                            <i class="fas fa-info-circle" aria-hidden="true"></i>
+                        </div>
+                        <h4>Services en cours de chargement</h4>
+                        <p>Veuillez patienter pendant que nous chargeons nos domaines d'expertise.</p>
+                        <a href="#contact" class="btn btn-outline" aria-label="Nous contacter"><i class="fas fa-arrow-right" aria-hidden="true"></i> Nous contacter</a>
+                    </div>
                 <?php endif; ?>
             </div>
         </div>
-    </section>
-
+    </div>
+</section>
     <!-- Team Section -->
     <section id="team" class="section" style="background: var(--gradient-bg);" aria-labelledby="team-title">
         <div class="container">
@@ -272,7 +296,6 @@
             </div>
         </div>
     </section>
-
     <!-- News Section -->
     <section id="news" class="section news-section" aria-labelledby="news-title">
         <div class="container">
@@ -312,12 +335,51 @@
         </div>
     </section>
 
+    <!-- Events Section -->
+    <section id="events" class="section news-section" aria-labelledby="events-title">
+        <div class="container">
+            <div class="section-title">
+                <span class="badge">Événements</span>
+                <h2 id="events-title">Nos prochains événements</h2>
+                <p class="lead">Rejoignez-nous pour nos conférences, ateliers et formations juridiques</p>
+            </div>
+            <div class="news-grid" role="region" aria-live="polite">
+                <?php if (isset($events) && is_array($events) && !empty($events)): ?>
+                    <?php foreach ($events as $item): ?>
+                    <div class="news-card">
+                        <?php if (!empty($item['image_path'])): ?>
+                        <img src="<?php echo h($item['image_path']); ?>" alt="<?php echo h($item['title'] ?? 'Événement'); ?>" class="news-image" loading="lazy">
+                        <?php endif; ?>
+                        <div class="news-content">
+                            <p class="news-date"><i class="fas fa-calendar-alt" aria-hidden="true"></i> <?php echo date('d F Y', strtotime($item['event_date'] ?? 'now')); ?></p>
+                            <h4 class="news-title"><?php echo h($item['title'] ?? "Titre de l'événement"); ?></h4>
+                            <div class="news-excerpt"><?php echo nl2br(h(substr(strip_tags($item['content'] ?? "Contenu de l'événement"), 0, 200))); ?>...</div>
+                            <a href="/event/<?php echo h($item['id'] ?? ''); ?>" class="btn btn-outline" aria-label="En savoir plus sur cet événement">
+                                <i class="fas fa-arrow-right" aria-hidden="true"></i> En savoir plus
+                            </a>
+                        </div>
+                    </div>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <div class="news-card">
+                        <div class="news-content">
+                            <p class="news-date"><i class="fas fa-calendar-alt" aria-hidden="true"></i> <?php echo date('d F Y'); ?></p>
+                            <h4 class="news-title">Événements en cours de chargement</h4>
+                            <div class="news-excerpt">Restez à l'écoute pour découvrir nos prochains événements.</div>
+                            <a href="#contact" class="btn btn-outline" aria-label="Nous contacter"><i class="fas fa-arrow-right" aria-hidden="true"></i> Nous contacter</a>
+                        </div>
+                    </div>
+                <?php endif; ?>
+            </div>
+        </div>
+    </section>
+
     <!-- Contact Section -->
     <section id="contact" class="section contact-section" aria-labelledby="contact-title">
         <div class="container">
             <div class="max-w-4xl mx-auto">
                 <div class="section-title">
-                    <span class="badge">Nous contacter</span>
+                    <span class="badge">Nous nous contacter</span>
                     <h2 id="contact-title">Parlons de Votre Situation</h2>
                     <p class="lead">Bénéficiez d'un premier échange gratuit pour évaluer vos besoins juridiques</p>
                 </div>
@@ -366,7 +428,7 @@
                                 <input type="file" id="fileInput" name="documents[]" multiple accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" class="file-input">
                                 <button type="button" class="file-upload-button" onclick="document.getElementById('fileInput').click()">Sélectionner des fichiers</button>
                             </div>
-                            <div class="upload-info"><i class="fas fa-info-circle" aria-hidden="true"></i> Formats acceptés : PDF, DOC, DOCX, JPG, PNG (Max: 10MB par fichier)</div>
+                            <div class="upload-info"><i class="fas fa-info-circle" aria-hidden="true"></i> Formats acceptés : Formats PDF, DOC, DOCX, JPG, PNG (Max: 10MB par fichier)</div>
                             <div class="file-preview" id="filePreview"></div>
                         </div>
                         <div class="appointment-section">
@@ -388,7 +450,7 @@
                                         <input type="date" class="form-control form-control-lg" id="appointment_date" name="appointment_date" required aria-required="true">
                                     </div>
                                     <div class="form-group">
-                                        <label for="appointment_time" class="form-label">Heure du rendez-vous *</label>
+                                        <label for="appointment_time" class="form-label">Heure du rendez-vous disponible *</label>
                                         <select class="form-control form-control-lg" id="appointment_time" name="appointment_time" disabled aria-disabled="true">
                                             <option value="">Choisissez une date pour voir les créneaux...</option>
                                         </select>
@@ -409,7 +471,7 @@
                                             <h4 class="info-title">Durée & Format</h4>
                                         </div>
                                         <div class="info-content">
-                                            <p><strong>1 heure</strong> de consultation</p>
+                                            <p><strong>30 min</strong> de consultation</p>
                                             <p>En présentiel ou visioconférence selon votre préférence.</p>
                                         </div>
                                     </div>
@@ -481,6 +543,7 @@
                     <a href="#services" aria-label="Nos services">Nos services</a>
                     <a href="#team" aria-label="Équipe">Équipe</a>
                     <a href="#news" aria-label="Actualités">Actualités</a>
+                    <a href="#events" aria-label="Evenements">Evenements</a>
                     <a href="#contact" aria-label="Contact">Contact</a>
                 </div>
                 <div class="footer-section">
